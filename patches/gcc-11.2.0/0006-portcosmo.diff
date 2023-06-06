@@ -821,10 +821,10 @@ index 000000000..f77fba707
 +#endif /* INITSTRUCT_H */
 diff --git a/gcc/c-family/portcosmo.cc b/gcc/c-family/portcosmo.cc
 new file mode 100644
-index 000000000..4716500b5
+index 000000000..2966ce767
 --- /dev/null
 +++ b/gcc/c-family/portcosmo.cc
-@@ -0,0 +1,171 @@
+@@ -0,0 +1,170 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -848,7 +848,6 @@ index 000000000..4716500b5
 +#include "c-family/ifswitch.h"
 +#include "c-family/initstruct.h"
 +
-+static tree maybe_get_ifsw_identifier(const char *);
 +static tree patch_int_nonconst(location_t, tree, const char **);
 +
 +struct SubContext cosmo_ctx;
@@ -965,7 +964,7 @@ index 000000000..4716500b5
 +#undef END_OF_BASE_TREE_CODES
 +}
 +
-+static tree maybe_get_ifsw_identifier(const char *s) {
++tree maybe_get_ifsw_identifier(const char *s) {
 +    char *result = (char *)xmalloc(strlen("__tmpcosmo_") + strlen(s) + 1);
 +    strcpy(result, "__tmpcosmo_");
 +    strcat(result, s);
@@ -1017,10 +1016,10 @@ index 000000000..b25d8257b
 +#endif /* PORTCOSMO_H */
 diff --git a/gcc/c-family/portcosmo.internal.h b/gcc/c-family/portcosmo.internal.h
 new file mode 100644
-index 000000000..1d361bfa7
+index 000000000..6e44ab5d8
 --- /dev/null
 +++ b/gcc/c-family/portcosmo.internal.h
-@@ -0,0 +1,55 @@
+@@ -0,0 +1,56 @@
 +#ifndef PORTCOSMO_INTERNAL_H
 +#define PORTCOSMO_INTERNAL_H
 +/* first stdlib headers */
@@ -1042,6 +1041,7 @@ index 000000000..1d361bfa7
 +const char *get_tree_code_str(tree);
 +int get_value_of_const(char *);
 +tree get_ifsw_identifier(char *);
++tree maybe_get_ifsw_identifier(const char *);
 +int check_magic_equal(tree, char *);
 +
 +#define EXPR_LOC_LINE(x)      LOCATION_LINE(EXPR_LOCATION((x)))
@@ -1533,10 +1533,10 @@ index 000000000..56b5b9a01
 +}
 diff --git a/gcc/c-family/unpatch_int.cc b/gcc/c-family/unpatch_int.cc
 new file mode 100644
-index 000000000..08c96b544
+index 000000000..78bbd2edc
 --- /dev/null
 +++ b/gcc/c-family/unpatch_int.cc
-@@ -0,0 +1,63 @@
+@@ -0,0 +1,70 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -1562,7 +1562,11 @@ index 000000000..08c96b544
 +   * if we are returning 0, rep_ptr is unchanged.
 +   * use is not affected! */
 +  if (TREE_CODE(arg) == INTEGER_CST) {
-+    tree vx = DECL_INITIAL(get_ifsw_identifier(use->name));
++    tree subbed_var = maybe_get_ifsw_identifier(use->name);
++    if (subbed_var == NULL_TREE) {
++        return 0;
++    }
++    tree vx = DECL_INITIAL(subbed_var);
 +    if (tree_int_cst_equal(arg, vx)) {
 +      /* if this is an integer constant, AND its
 +       * value is equal to the macro we substituted,
@@ -1570,6 +1574,7 @@ index 000000000..08c96b544
 +      *rep_ptr =
 +          build1(NOP_EXPR, integer_type_node, VAR_NAME_AS_TREE(use->name));
 +      INFORM(use->loc, "unpatched an integer here with %s\n", use->name);
++      TREE_USED(subbed_var) = 0;
 +      return 1;
 +    }
 +    /* here you might want to handle some
@@ -1584,6 +1589,7 @@ index 000000000..08c96b544
 +        INFORM(use->loc, "unpatched an integer here with -%s\n", use->name);
 +        *rep_ptr =
 +            build1(NEGATE_EXPR, integer_type_node, VAR_NAME_AS_TREE(use->name));
++        TREE_USED(subbed_var) = 0;
 +        return 1;
 +      }
 +
@@ -1592,6 +1598,7 @@ index 000000000..08c96b544
 +        INFORM(use->loc, "unpatched an integer here with ~%s\n", use->name);
 +        *rep_ptr = build1(BIT_NOT_EXPR, integer_type_node,
 +                          VAR_NAME_AS_TREE(use->name));
++        TREE_USED(subbed_var) = 0;
 +        return 1;
 +      }
 +    }
