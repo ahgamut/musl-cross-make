@@ -1533,10 +1533,10 @@ index 000000000..56b5b9a01
 +}
 diff --git a/gcc/c-family/unpatch_int.cc b/gcc/c-family/unpatch_int.cc
 new file mode 100644
-index 000000000..78bbd2edc
+index 000000000..5bf099141
 --- /dev/null
 +++ b/gcc/c-family/unpatch_int.cc
-@@ -0,0 +1,70 @@
+@@ -0,0 +1,76 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -1575,6 +1575,8 @@ index 000000000..78bbd2edc
 +          build1(NOP_EXPR, integer_type_node, VAR_NAME_AS_TREE(use->name));
 +      INFORM(use->loc, "unpatched an integer here with %s\n", use->name);
 +      TREE_USED(subbed_var) = 0;
++      DECL_NAMELESS(subbed_var) = 1;
++      DECL_READ_P(subbed_var) = 0;
 +      return 1;
 +    }
 +    /* here you might want to handle some
@@ -1590,6 +1592,8 @@ index 000000000..78bbd2edc
 +        *rep_ptr =
 +            build1(NEGATE_EXPR, integer_type_node, VAR_NAME_AS_TREE(use->name));
 +        TREE_USED(subbed_var) = 0;
++        DECL_NAMELESS(subbed_var) = 1;
++        DECL_READ_P(subbed_var) = 0;
 +        return 1;
 +      }
 +
@@ -1599,6 +1603,8 @@ index 000000000..78bbd2edc
 +        *rep_ptr = build1(BIT_NOT_EXPR, integer_type_node,
 +                          VAR_NAME_AS_TREE(use->name));
 +        TREE_USED(subbed_var) = 0;
++        DECL_READ_P(subbed_var) = 0;
++        DECL_NAMELESS(subbed_var) = 1;
 +        return 1;
 +      }
 +    }
