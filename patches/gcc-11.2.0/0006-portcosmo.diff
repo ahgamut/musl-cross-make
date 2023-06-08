@@ -55,7 +55,7 @@ index d227686a0..a1d4c81ec 100644
  
    constant_expression_warning (value);
 diff --git a/gcc/c-family/c-opts.c b/gcc/c-family/c-opts.c
-index 89e05a4c5..bf1d8b445 100644
+index 89e05a4c5..15c26f507 100644
 --- a/gcc/c-family/c-opts.c
 +++ b/gcc/c-family/c-opts.c
 @@ -41,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
@@ -66,19 +66,18 @@ index 89e05a4c5..bf1d8b445 100644
  
  #ifndef DOLLARS_IN_IDENTIFIERS
  # define DOLLARS_IN_IDENTIFIERS true
-@@ -1196,6 +1197,11 @@ c_common_init (void)
-       return false;
-     }
+@@ -1131,6 +1132,10 @@ c_common_post_options (const char **pfilename)
+   cpp_post_options (parse_in);
+   init_global_opts_from_cpp (&global_options, cpp_get_options (parse_in));
  
 +  if (flag_portcosmo)
 +    {
 +        portcosmo_setup();
 +    }
-+
-   return true;
- }
+   input_location = UNKNOWN_LOCATION;
  
-@@ -1281,6 +1287,10 @@ c_common_finish (void)
+   *pfilename = this_input_filename
+@@ -1281,6 +1286,10 @@ c_common_finish (void)
    /* For performance, avoid tearing down cpplib's internal structures
       with cpp_destroy ().  */
    cpp_finish (parse_in, deps_stream);
@@ -89,7 +88,7 @@ index 89e05a4c5..bf1d8b445 100644
  
    if (deps_stream && deps_stream != out_stream && deps_stream != stdout
        && (ferror (deps_stream) || fclose (deps_stream)))
-@@ -1288,6 +1298,7 @@ c_common_finish (void)
+@@ -1288,6 +1297,7 @@ c_common_finish (void)
  
    if (out_stream && (ferror (out_stream) || fclose (out_stream)))
      fatal_error (input_location, "when writing output to %s: %m", out_fname);
@@ -114,10 +113,10 @@ index 2005b783c..a69a9a349 100644
  Recognize C++ keywords like \"compl\" and \"xor\".
 diff --git a/gcc/c-family/ifswitch.cc b/gcc/c-family/ifswitch.cc
 new file mode 100644
-index 000000000..148b2c2b4
+index 000000000..0dab740f1
 --- /dev/null
 +++ b/gcc/c-family/ifswitch.cc
-@@ -0,0 +1,236 @@
+@@ -0,0 +1,226 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -178,7 +177,6 @@ index 000000000..148b2c2b4
 +          /* the case is the one we substituted */) {
 +        DEBUGF("we substituted a case label at %u,%u\n", EXPR_LOC_LINE(t),
 +               EXPR_LOC_COL(t));
-+        // debug_tree(CASE_LOW(t));
 +        count += 1;
 +      }
 +    }
@@ -208,7 +206,6 @@ index 000000000..148b2c2b4
 +
 +tree modded_case_label(tree t, unsigned int i, tree swcond, vec<tree> *&ifs,
 +                       SubContext *ctx, tree *default_label) {
-+  // debug_tree(t);
 +  tree result;
 +  tree replacement = NULL_TREE;
 +  subu_node *use = NULL;
@@ -299,7 +296,7 @@ index 000000000..148b2c2b4
 +  }
 +  /* add all the if statements to the start of the switch body */
 +  /* TODO: do we have to combine them via COND_EXPR_ELSE? why,
-+   * is it not possible to just them as a list one after the other? */
++   * is it not possible to have them as a list one after the other? */
 +  tree res;
 +  unsigned int zz = 0;
 +  if (ifs->length() > 0) {
@@ -339,15 +336,7 @@ index 000000000..148b2c2b4
 +  append_to_statement_list(build_empty_stmt(UNKNOWN_LOCATION), &swbody);
 +  append_to_statement_list(exit_label, &swbody);
 +  append_to_statement_list(build_empty_stmt(UNKNOWN_LOCATION), &swbody);
-+  /*
-+  snprintf(dest, sizeof(dest),
-+           "above switch had %d cases replaced and %d breaks\n", case_count,
-+           break_count);
-+  append_to_statement_list(build_call_expr(VAR_NAME_AS_TREE("printf"), 1,
-+                                           BUILD_STRING_AS_TREE(dest)),
-+                           &swbody); */
 +
-+  /* debug_tree(swbody); */
 +  /* we are returning SWITCH_STMT_BODY(swexpr),
 +   * instead of just swbody, because sometimes,
 +   * SWITCH_STMT_BODY(swexpr) may be a BIND_EXPR
@@ -372,10 +361,10 @@ index 000000000..ccf78067f
 +#endif /* IFSWITCH_H */
 diff --git a/gcc/c-family/initstruct.cc b/gcc/c-family/initstruct.cc
 new file mode 100644
-index 000000000..6a0d4a78e
+index 000000000..71e860a3d
 --- /dev/null
 +++ b/gcc/c-family/initstruct.cc
-@@ -0,0 +1,422 @@
+@@ -0,0 +1,395 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -427,7 +416,6 @@ index 000000000..6a0d4a78e
 +        }
 +      } else if (TREE_CODE(val) == CONSTRUCTOR) {
 +        auto sub = access_at(lhs, index);
-+        // debug_tree(sub);
 +        set_values_based_on_ctor(val, list, body, sub, bound);
 +        use = NULL; /* might've gotten stomped */
 +        if (list->count == 0) return;
@@ -437,7 +425,6 @@ index 000000000..6a0d4a78e
 +    if (found) {
 +      auto modexpr = build2(MODIFY_EXPR, TREE_TYPE(index),
 +                            access_at(lhs, index), replacement);
-+      // debug_tree(modexpr);
 +      append_to_statement_list(modexpr, &body);
 +      remove_subu_elem(list, use);
 +      replacement = NULL_TREE;
@@ -497,13 +484,6 @@ index 000000000..6a0d4a78e
 +    append_to_statement_list(
 +        build2(MODIFY_EXPR, void_type_node, dcl, VAR_NAME_AS_TREE(use->name)),
 +        &body);
-+    /*
-+    append_to_statement_list(
-+        build_call_expr(VAR_NAME_AS_TREE("printf"), 2,
-+                        BUILD_STRING_AS_TREE("ctor initstruct %s\n"),
-+                        BUILD_STRING_AS_TREE(IDENTIFIER_NAME(dcl))),
-+        &body);
-+        */
 +    remove_subu_elem(ctx->mods, use);
 +    cgraph_build_static_cdtor('I', body, 0);
 +  } else if ((RECORD_TYPE == TREE_CODE(TREE_TYPE(dcl)) ||
@@ -521,13 +501,6 @@ index 000000000..6a0d4a78e
 +      set_values_based_on_ctor(DECL_INITIAL(dcl), ctx->mods, body, dcl,
 +                               ctx->mods->end);
 +    }
-+    /*
-+    append_to_statement_list(
-+        build_call_expr(VAR_NAME_AS_TREE("printf"), 2,
-+                        BUILD_STRING_AS_TREE("ctor initstruct %s\n"),
-+                        BUILD_STRING_AS_TREE(IDENTIFIER_NAME(dcl))),
-+        &body);
-+        */
 +    cgraph_build_static_cdtor('I', body, 0);
 +    DEBUGF("uploaded ctor\n");
 +  }
@@ -647,7 +620,6 @@ index 000000000..6a0d4a78e
 +        &res);
 +    /* overwrite the input tree with our new statements */
 +    *dxpr = res;
-+    // debug_tree(res);
 +    remove_subu_elem(ctx->mods, use);
 +    replacement = NULL_TREE;
 +    return 1;
@@ -667,7 +639,6 @@ index 000000000..6a0d4a78e
 +    int found = 0;
 +    FOR_EACH_CONSTRUCTOR_VALUE(CONSTRUCTOR_ELTS(ctor), i, val) {
 +      DEBUGF("value %u is %s\n", i, get_tree_code_str(val));
-+      // debug_tree(val);
 +      if (TREE_CODE(val) == INTEGER_CST) {
 +        for (use = list->head; use; use = use->next) {
 +          found = arg_should_be_unpatched(val, use, &replacement);
@@ -704,8 +675,6 @@ index 000000000..6a0d4a78e
 +  subu_node *use = NULL;
 +  subu_list *list = ctx->mods;
 +  unsigned int oldcount = list->count;
-+
-+  // debug_tree(DECL_INITIAL(dcl));
 +
 +  if (INTEGRAL_TYPE_P(TREE_TYPE(dcl))) {
 +    get_subu_elem(list, list->start, &use);
@@ -769,13 +738,6 @@ index 000000000..6a0d4a78e
 +                               &then_clause);
 +      set_values_based_on_ctor(DECL_INITIAL(dcl), ctx->mods, then_clause, dcl,
 +                               bound);
-+      /*
-+      append_to_statement_list(
-+          build_call_expr(VAR_NAME_AS_TREE("printf"), 2,
-+                          BUILD_STRING_AS_TREE("initstruct magic %lu bytes\n"),
-+                          DECL_SIZE_UNIT(dcl)),
-+          &then_clause);
-+      */
 +
 +      /* create the if statement into the overall result mentioned above */
 +      tree res = alloc_stmt_list();
@@ -821,10 +783,10 @@ index 000000000..f77fba707
 +#endif /* INITSTRUCT_H */
 diff --git a/gcc/c-family/portcosmo.cc b/gcc/c-family/portcosmo.cc
 new file mode 100644
-index 000000000..2966ce767
+index 000000000..75a5f0fb9
 --- /dev/null
 +++ b/gcc/c-family/portcosmo.cc
-@@ -0,0 +1,170 @@
+@@ -0,0 +1,195 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -852,11 +814,57 @@ index 000000000..2966ce767
 +
 +struct SubContext cosmo_ctx;
 +static int ctx_inited = 0;
++static void (*other_define) (cpp_reader *, location_t, cpp_hashnode *) = NULL;
++
++void check_macro_define(cpp_reader *reader, location_t loc,
++                        cpp_hashnode *node) {
++  const char *defn = (const char *)cpp_macro_definition(reader, node);
++  if (cosmo_ctx.active && strstr(defn, "__tmpcosmo_") == defn)
++  {
++    const char *arg_start = defn + strlen("__tmpcosmo_");
++    const char *arg_end = strstr(arg_start, " ");
++    if (!arg_start || !arg_end || arg_end - arg_start < 1) return;
++    char* name = xstrndup(arg_start, arg_end - arg_start);
++    char* val = xstrdup(arg_end);
++    long long val2 = strtoll(arg_end, NULL, 0);
++    if (val2 == 0) {
++        cpp_error_at(parse_in, CPP_DL_ERROR, loc,
++                "cannot parse portcosmo temporary constant\n");
++        cosmo_ctx.active = 0;
++    } else {
++        if (cosmo_ctx.map->get(name)) {
++            cpp_error_at(parse_in, CPP_DL_ERROR, loc,
++                    "duplicate portcosmo temporary constant\n");
++            cosmo_ctx.active = 0;
++        } else {
++            tmpconst z;
++            z.raw = val2; 
++            z.t = build_int_cst(long_long_integer_type_node, val2);
++            cosmo_ctx.map->put(name, z);
++            INFORM(loc, "added temporary for %s\n", name);
++        }
++    }
++    /* not freeing name because it's in the hashmap */
++    free(val);
++  }
++  else if(other_define) {
++     DEBUGF("we should just let this be %s\n", defn);
++     other_define(reader, loc, node);
++  }
++}
 +
 +void portcosmo_setup() {
++    cpp_callbacks *cbs = cpp_get_callbacks(parse_in);
 +    if (flag_portcosmo && 0 == ctx_inited) {
 +        construct_context(&cosmo_ctx);
 +        ctx_inited = 1;
++        if (cbs) {
++            if (cbs->define) {
++                other_define = cbs->define;
++                /* TODO: do we need for cbs->under as well? */
++            }
++            cbs->define = check_macro_define;
++        }
 +    }
 +}
 +
@@ -919,9 +927,8 @@ index 000000000..2966ce767
 +    tree subs = NULL_TREE;
 +    switch (TREE_CODE(t)) {
 +        case VAR_DECL:
-+            subs = maybe_get_ifsw_identifier(IDENTIFIER_NAME(t));
-+            if (subs != NULL_TREE && TREE_STATIC(subs) && TREE_READONLY(subs)) {
-+                subs = DECL_INITIAL(subs);
++            subs = maybe_get_tmpconst_value(IDENTIFIER_NAME(t));
++            if (subs != NULL_TREE) {
 +                *res = IDENTIFIER_NAME(t);
 +                DEBUGF("substitution exists %s\n", *res);
 +            }
@@ -964,36 +971,16 @@ index 000000000..2966ce767
 +#undef END_OF_BASE_TREE_CODES
 +}
 +
-+tree maybe_get_ifsw_identifier(const char *s) {
-+    char *result = (char *)xmalloc(strlen("__tmpcosmo_") + strlen(s) + 1);
-+    strcpy(result, "__tmpcosmo_");
-+    strcat(result, s);
-+    tree t = maybe_get_identifier(result);
++tree maybe_get_tmpconst_value(const char *s) {
++    char *result = xstrdup(s);
++    tmpconst *z = cosmo_ctx.map->get(result);
 +    free(result);
-+    if (t != NULL_TREE && lookup_name(t) != NULL_TREE) {
-+        return lookup_name(t);
-+    }
-+    return NULL_TREE;
-+}
-+
-+tree get_ifsw_identifier(char *s) {
-+    char *result = (char *)xmalloc(strlen("__tmpcosmo_") + strlen(s) + 1);
-+    strcpy(result, "__tmpcosmo_");
-+    strcat(result, s);
-+    tree t = lookup_name(get_identifier(result));
-+    free(result);
-+    return t;
-+}
-+
-+int get_value_of_const(char *name) {
-+    tree vx = get_ifsw_identifier(name);
-+    int z = tree_to_shwi(DECL_INITIAL(vx));
-+    return z;
++    return z ? z->t : NULL_TREE;
 +}
 +
 +int check_magic_equal(tree value, char *varname) {
-+    tree vx = get_ifsw_identifier(varname);
-+    return tree_int_cst_equal(value, DECL_INITIAL(vx));
++    tree vx = maybe_get_tmpconst_value(varname);
++    return vx != NULL_TREE && tree_int_cst_equal(value, vx);
 +}
 diff --git a/gcc/c-family/portcosmo.h b/gcc/c-family/portcosmo.h
 new file mode 100644
@@ -1016,10 +1003,10 @@ index 000000000..b25d8257b
 +#endif /* PORTCOSMO_H */
 diff --git a/gcc/c-family/portcosmo.internal.h b/gcc/c-family/portcosmo.internal.h
 new file mode 100644
-index 000000000..6e44ab5d8
+index 000000000..77e59050a
 --- /dev/null
 +++ b/gcc/c-family/portcosmo.internal.h
-@@ -0,0 +1,56 @@
+@@ -0,0 +1,54 @@
 +#ifndef PORTCOSMO_INTERNAL_H
 +#define PORTCOSMO_INTERNAL_H
 +/* first stdlib headers */
@@ -1039,9 +1026,7 @@ index 000000000..6e44ab5d8
 +#include <tree.h>
 +
 +const char *get_tree_code_str(tree);
-+int get_value_of_const(char *);
-+tree get_ifsw_identifier(char *);
-+tree maybe_get_ifsw_identifier(const char *);
++tree maybe_get_tmpconst_value(const char *);
 +int check_magic_equal(tree, char *);
 +
 +#define EXPR_LOC_LINE(x)      LOCATION_LINE(EXPR_LOCATION((x)))
@@ -1078,10 +1063,10 @@ index 000000000..6e44ab5d8
 +#endif /* PORTCOSMO.INTERNAL_H */
 diff --git a/gcc/c-family/subcontext.cc b/gcc/c-family/subcontext.cc
 new file mode 100644
-index 000000000..e3e02800d
+index 000000000..40d180b2c
 --- /dev/null
 +++ b/gcc/c-family/subcontext.cc
-@@ -0,0 +1,241 @@
+@@ -0,0 +1,245 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -1288,6 +1273,8 @@ index 000000000..e3e02800d
 +  ctx->switchcount = 0;
 +  ctx->initcount = 0;
 +  ctx->subcount = 0;
++  ctx->map = NULL;
++  ctx->map = hash_map_maybe_create<false, char, tmpconst, tmpmap_traits>(ctx->map);
 +}
 +
 +void add_context_subu(SubContext *ctx, const location_t loc, const char *defn,
@@ -1322,16 +1309,21 @@ index 000000000..e3e02800d
 +  }
 +  ctx->subcount = 0;
 +  ctx->active = 0;
++  delete ctx->map;
++  ctx->map = NULL;
 +}
 diff --git a/gcc/c-family/subcontext.h b/gcc/c-family/subcontext.h
 new file mode 100644
-index 000000000..558e4fd06
+index 000000000..e4ffaad0c
 --- /dev/null
 +++ b/gcc/c-family/subcontext.h
-@@ -0,0 +1,81 @@
+@@ -0,0 +1,103 @@
 +#ifndef SUBCONTEXT_H
 +#define SUBCONTEXT_H
 +#include "c-family/portcosmo.internal.h"
++#include "hash-map-traits.h"
++#include "hash-map.h"
++#include "hash-traits.h"
 +
 +enum SubstType { 
 +    PORTCOSMO_UNKNOWN = 0, 
@@ -1339,7 +1331,7 @@ index 000000000..558e4fd06
 +    PORTCOSMO_INITVAL = 2 
 +};
 +
-+struct _subu_node {
++struct subu_node {
 +  /* a node indicating that an ifswitch substitution has occurred.
 +   *
 +   * Details include:
@@ -1360,25 +1352,42 @@ index 000000000..558e4fd06
 +  location_t loc;
 +  SubstType tp;
 +  char *name;
-+  struct _subu_node *next;
++  struct subu_node *next;
 +};
 +
-+typedef struct _subu_node subu_node;
++typedef struct subu_node subu_node;
 +
-+struct _subu_list {
++struct subu_list {
 +  subu_node *head;
 +  /* inclusive bounds, range containing all recorded substitutions */
 +  location_t start, end;
 +  /* number of substitutions */
 +  int count;
 +};
-+typedef struct _subu_list subu_list;
++typedef struct subu_list subu_list;
 +
 +int check_loc_in_bound(subu_list *, location_t);
 +int valid_subu_bounds(subu_list *, location_t, location_t);
 +int get_subu_elem(subu_list *, location_t, subu_node **);
 +int get_subu_elem2(subu_list *, source_range, subu_node **);
 +void remove_subu_elem(subu_list *, subu_node *);
++
++struct tmpconst {
++    long long raw;
++    tree t;
++};
++typedef struct tmpconst tmpconst;
++
++struct free_string_hash : pointer_hash<char>, typed_free_remove <char> {
++  static inline hashval_t hash (char *id) {
++    return htab_hash_string (id);
++  };
++  static inline bool equal (char *a, char *b) {
++    return strcmp(a, b) == 0;
++  };
++};
++using tmpmap_traits = simple_hashmap_traits<free_string_hash, tmpconst>;
++using tmpmap = hash_map<char, tmpconst, tmpmap_traits>;
 +
 +/* Substitution Context */
 +struct SubContext {
@@ -1396,6 +1405,8 @@ index 000000000..558e4fd06
 +  /* if zero, it means we haven't started or something
 +   * went wrong somewhere */
 +  int active;
++  /* store values of all temporary constants */
++  tmpmap *map;
 +};
 +
 +void add_context_subu(SubContext *, const location_t, const char *,
@@ -1533,10 +1544,10 @@ index 000000000..56b5b9a01
 +}
 diff --git a/gcc/c-family/unpatch_int.cc b/gcc/c-family/unpatch_int.cc
 new file mode 100644
-index 000000000..5bf099141
+index 000000000..31a2cebb0
 --- /dev/null
 +++ b/gcc/c-family/unpatch_int.cc
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,66 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -1562,11 +1573,10 @@ index 000000000..5bf099141
 +   * if we are returning 0, rep_ptr is unchanged.
 +   * use is not affected! */
 +  if (TREE_CODE(arg) == INTEGER_CST) {
-+    tree subbed_var = maybe_get_ifsw_identifier(use->name);
-+    if (subbed_var == NULL_TREE) {
++    tree vx = maybe_get_tmpconst_value(use->name);
++    if (vx == NULL_TREE) {
 +        return 0;
 +    }
-+    tree vx = DECL_INITIAL(subbed_var);
 +    if (tree_int_cst_equal(arg, vx)) {
 +      /* if this is an integer constant, AND its
 +       * value is equal to the macro we substituted,
@@ -1574,9 +1584,6 @@ index 000000000..5bf099141
 +      *rep_ptr =
 +          build1(NOP_EXPR, integer_type_node, VAR_NAME_AS_TREE(use->name));
 +      INFORM(use->loc, "unpatched an integer here with %s\n", use->name);
-+      TREE_USED(subbed_var) = 0;
-+      DECL_NAMELESS(subbed_var) = 1;
-+      DECL_READ_P(subbed_var) = 0;
 +      return 1;
 +    }
 +    /* here you might want to handle some
@@ -1591,9 +1598,6 @@ index 000000000..5bf099141
 +        INFORM(use->loc, "unpatched an integer here with -%s\n", use->name);
 +        *rep_ptr =
 +            build1(NEGATE_EXPR, integer_type_node, VAR_NAME_AS_TREE(use->name));
-+        TREE_USED(subbed_var) = 0;
-+        DECL_NAMELESS(subbed_var) = 1;
-+        DECL_READ_P(subbed_var) = 0;
 +        return 1;
 +      }
 +
@@ -1602,9 +1606,6 @@ index 000000000..5bf099141
 +        INFORM(use->loc, "unpatched an integer here with ~%s\n", use->name);
 +        *rep_ptr = build1(BIT_NOT_EXPR, integer_type_node,
 +                          VAR_NAME_AS_TREE(use->name));
-+        TREE_USED(subbed_var) = 0;
-+        DECL_READ_P(subbed_var) = 0;
-+        DECL_NAMELESS(subbed_var) = 1;
 +        return 1;
 +      }
 +    }
@@ -1848,4 +1849,3 @@ index 000000000..bf01d9aeb
 +                             DECL_SOURCE_LOCATION(ind));
 +  */
 +}
-
