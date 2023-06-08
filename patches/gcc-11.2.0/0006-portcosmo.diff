@@ -361,10 +361,10 @@ index 000000000..ccf78067f
 +#endif /* IFSWITCH_H */
 diff --git a/gcc/c-family/initstruct.cc b/gcc/c-family/initstruct.cc
 new file mode 100644
-index 000000000..71e860a3d
+index 000000000..b0162406c
 --- /dev/null
 +++ b/gcc/c-family/initstruct.cc
-@@ -0,0 +1,395 @@
+@@ -0,0 +1,396 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -509,6 +509,7 @@ index 000000000..71e860a3d
 +void handle_decl(void *gcc_data, void *user_data) {
 +  tree t = (tree)gcc_data;
 +  SubContext *ctx = (SubContext *)user_data;
++  if (TREE_CODE(t) != VAR_DECL) return;
 +  if (ctx->active && ctx->mods->count > 0 && DECL_INITIAL(t) != NULL &&
 +      DECL_CONTEXT(t) == NULL_TREE) {
 +    int internal_use =
@@ -783,10 +784,10 @@ index 000000000..f77fba707
 +#endif /* INITSTRUCT_H */
 diff --git a/gcc/c-family/portcosmo.cc b/gcc/c-family/portcosmo.cc
 new file mode 100644
-index 000000000..75a5f0fb9
+index 000000000..37cd2847c
 --- /dev/null
 +++ b/gcc/c-family/portcosmo.cc
-@@ -0,0 +1,195 @@
+@@ -0,0 +1,208 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -841,7 +842,7 @@ index 000000000..75a5f0fb9
 +            z.raw = val2; 
 +            z.t = build_int_cst(long_long_integer_type_node, val2);
 +            cosmo_ctx.map->put(name, z);
-+            INFORM(loc, "added temporary for %s\n", name);
++            // INFORM(loc, "added temporary for %s\n", name);
 +        }
 +    }
 +    /* not freeing name because it's in the hashmap */
@@ -861,7 +862,7 @@ index 000000000..75a5f0fb9
 +        if (cbs) {
 +            if (cbs->define) {
 +                other_define = cbs->define;
-+                /* TODO: do we need for cbs->under as well? */
++                /* TODO: do we need for cbs->undef as well? */
 +            }
 +            cbs->define = check_macro_define;
 +        }
@@ -897,6 +898,9 @@ index 000000000..75a5f0fb9
 +                             PORTCOSMO_SWCASE);
 +        }
 +    }
++    if (subs == NULL_TREE) {
++        inform(loc, "unable to find __tmpcosmo_ temporary");
++    }
 +    return subs;
 +}
 +
@@ -914,7 +918,11 @@ index 000000000..75a5f0fb9
 +             * the location for rewriting the thing later */
 +            add_context_subu(&cosmo_ctx, loc, name, strlen(name),
 +                             PORTCOSMO_INITVAL);
++            DEBUGF("done\n");
 +        }
++    }
++    if (subs == NULL_TREE) {
++        inform(loc, "unable to find __tmpcosmo_ temporary");
 +    }
 +    return subs;
 +}
@@ -931,6 +939,12 @@ index 000000000..75a5f0fb9
 +            if (subs != NULL_TREE) {
 +                *res = IDENTIFIER_NAME(t);
 +                DEBUGF("substitution exists %s\n", *res);
++            }
++            break;
++        case CONVERT_EXPR:
++            subs = patch_int_nonconst(loc, TREE_OPERAND(t, 0), res);
++            if (subs != NULL_TREE) {
++                subs = build1(CONVERT_EXPR, integer_type_node, subs);
 +            }
 +            break;
 +        case NOP_EXPR:
@@ -1664,7 +1678,7 @@ index 53b2b5b63..51f3a72e5 100644
  	  c_genericize (fndecl);
  
 diff --git a/gcc/c/c-typeck.c b/gcc/c/c-typeck.c
-index b5d139e5d..2df309eba 100644
+index b5d139e5d..45be3af80 100644
 --- a/gcc/c/c-typeck.c
 +++ b/gcc/c/c-typeck.c
 @@ -46,6 +46,7 @@ along with GCC; see the file COPYING3.  If not see
@@ -1675,6 +1689,19 @@ index b5d139e5d..2df309eba 100644
  #include "gomp-constants.h"
  #include "spellcheck-tree.h"
  #include "gcc-rich-location.h"
+@@ -8159,10 +8160,10 @@ digest_init (location_t init_loc, tree type, tree init, tree origtype,
+ 	    = valid_compound_expr_initializer (inside_init,
+ 					       TREE_TYPE (inside_init));
+ 	  if (inside_init == error_mark_node)
+-	    error_init (init_loc, "initializer element is not constant");
++	    error_init (init_loc, "initializer element is not constant 8163");
+ 	  else
+ 	    pedwarn_init (init_loc, OPT_Wpedantic,
+-			  "initializer element is not constant");
++			  "initializer element is not constant 8166");
+ 	  if (flag_pedantic_errors)
+ 	    inside_init = error_mark_node;
+ 	}
 @@ -8170,8 +8171,17 @@ digest_init (location_t init_loc, tree type, tree init, tree origtype,
  	       && !initializer_constant_valid_p (inside_init,
  						 TREE_TYPE (inside_init)))
@@ -1684,26 +1711,58 @@ index b5d139e5d..2df309eba 100644
 +      if (flag_portcosmo) {
 +        inside_init = patch_init_nonconst(init_loc, inside_init);
 +        if (inside_init == NULL_TREE) {
-+	      error_init (init_loc, "initializer element is not constant");
++	      error_init (init_loc, "initializer element is not constant 8177");
 +	      inside_init = error_mark_node;
 +        }
 +      }
 +      else {
-+	    error_init (init_loc, "initializer element is not constant");
++	    error_init (init_loc, "initializer element is not constant 8183");
 +	    inside_init = error_mark_node;
 +      }
  	}
        else if (require_constant && !maybe_const)
  	pedwarn_init (init_loc, OPT_Wpedantic,
-@@ -9787,7 +9797,7 @@ output_init_element (location_t loc, tree value, tree origtype,
+@@ -8210,8 +8220,17 @@ digest_init (location_t init_loc, tree type, tree init, tree origtype,
+ 	;
+       else if (require_constant && !TREE_CONSTANT (inside_init))
+ 	{
+-	  error_init (init_loc, "initializer element is not constant");
+-	  inside_init = error_mark_node;
++	  if (flag_portcosmo) {
++        inside_init = patch_init_nonconst(init_loc, inside_init);
++        if (inside_init == NULL_TREE) {
++	      error_init (init_loc, "initializer element is not constant 8226");
++	      inside_init = error_mark_node;
++        }
++      }
++      else {
++	    error_init (init_loc, "initializer element is not constant 8183");
++	    inside_init = error_mark_node;
++      }
+ 	}
+       else if (require_constant
+ 	       && !initializer_constant_valid_p (inside_init,
+@@ -9740,7 +9759,7 @@ output_init_element (location_t loc, tree value, tree origtype,
+ 	 the brace enclosed list they contain).  */
+       if (flag_isoc99)
+ 	pedwarn_init (loc, OPT_Wpedantic, "initializer element is not "
+-		      "constant");
++		      "constant 9754");
+       tree decl = COMPOUND_LITERAL_EXPR_DECL (value);
+       value = DECL_INITIAL (decl);
+     }
+@@ -9787,9 +9806,9 @@ output_init_element (location_t loc, tree value, tree origtype,
    /* Proceed to check the constness of the original initializer.  */
    if (!initializer_constant_valid_p (value, TREE_TYPE (value)))
      {
 -      if (require_constant_value)
 +      if (require_constant_value && !flag_portcosmo)
  	{
- 	  error_init (loc, "initializer element is not constant");
+-	  error_init (loc, "initializer element is not constant");
++	  error_init (loc, "initializer element is not constant 9803");
  	  value = error_mark_node;
+ 	}
+       else if (require_constant_elements)
 diff --git a/gcc/c/portcosmo_bcref.cc b/gcc/c/portcosmo_bcref.cc
 new file mode 100644
 index 000000000..2c6a58296
