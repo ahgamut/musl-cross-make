@@ -91,7 +91,7 @@ index 8a5fb3fd9..3a7498db8 100644
  # Analyzer object files
  ANALYZER_OBJS = \
 diff --git a/gcc/c-family/c-common.c b/gcc/c-family/c-common.c
-index d227686a0..a1d4c81ec 100644
+index d227686a0..895211ba4 100644
 --- a/gcc/c-family/c-common.c
 +++ b/gcc/c-family/c-common.c
 @@ -51,6 +51,7 @@ along with GCC; see the file COPYING3.  If not see
@@ -109,7 +109,7 @@ index d227686a0..a1d4c81ec 100644
 -      error_at (loc, "case label does not reduce to an integer constant");
 -      value = error_mark_node;
 +      if (flag_portcosmo) {
-+          value = patch_case_nonconst(loc, value);
++          value = portcosmo_patch_nonconst(loc, value);
 +          if (value == NULL_TREE) {
 +            error_at (loc, "case label does not reduce to an integer constant");
 +            value = error_mark_node;
@@ -851,10 +851,10 @@ index 000000000..f77fba707
 +#endif /* INITSTRUCT_H */
 diff --git a/gcc/c-family/portcosmo.cc b/gcc/c-family/portcosmo.cc
 new file mode 100644
-index 000000000..6d24cb390
+index 000000000..5b4d09b2d
 --- /dev/null
 +++ b/gcc/c-family/portcosmo.cc
-@@ -0,0 +1,280 @@
+@@ -0,0 +1,256 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -954,12 +954,12 @@ index 000000000..6d24cb390
 +}
 +
 +void portcosmo_show_tree(location_t loc, tree t) {
-+    INFORM(loc, "attempting case substitution at: line %u, col %u\n",
++    INFORM(loc, "attempting substitution at: line %u, col %u\n",
 +           LOCATION_LINE(loc), LOCATION_COLUMN(loc));
 +    debug_tree(t);
 +}
 +
-+tree patch_case_nonconst(location_t loc, tree t) {
++tree portcosmo_patch_nonconst(location_t loc, tree t) {
 +    INFORM(loc, "attempting case substitution at: line %u, col %u\n",
 +           LOCATION_LINE(loc), LOCATION_COLUMN(loc));
 +    tree subs = NULL_TREE;
@@ -971,31 +971,7 @@ index 000000000..6d24cb390
 +            subs = c_fully_fold(subs, false, NULL, false);
 +            /* this substitution was successful, so record
 +             * the location for rewriting the thing later */
-+            add_context_subu(&cosmo_ctx, loc, name, strlen(name),
-+                             PORTCOSMO_SWCASE);
-+            DEBUGF("done %s\n", name);
-+        }
-+    }
-+    if (subs == NULL_TREE) {
-+        inform(loc, "unable to find __tmpcosmo_ temporary");
-+    }
-+    return subs;
-+}
-+
-+tree patch_init_nonconst(location_t loc, tree t) {
-+    INFORM(loc, "attempting init substitution at: line %u, col %u\n",
-+           LOCATION_LINE(loc), LOCATION_COLUMN(loc));
-+    tree subs = NULL_TREE;
-+    const char *name = NULL;
-+    if (cosmo_ctx.active) {
-+        subs = patch_int_nonconst(loc, t, &name);
-+        if (subs != NULL_TREE) {
-+            DEBUGF("folding...\n");
-+            subs = c_fully_fold(subs, false, NULL, false);
-+            /* this substitution was successful, so record
-+             * the location for rewriting the thing later */
-+            add_context_subu(&cosmo_ctx, loc, name, strlen(name),
-+                             PORTCOSMO_INITVAL);
++            add_context_subu(&cosmo_ctx, loc, name, strlen(name));
 +            DEBUGF("done %s\n", name);
 +        }
 +    }
@@ -1137,10 +1113,10 @@ index 000000000..6d24cb390
 +}
 diff --git a/gcc/c-family/portcosmo.h b/gcc/c-family/portcosmo.h
 new file mode 100644
-index 000000000..b25d8257b
+index 000000000..ff06cb2b1
 --- /dev/null
 +++ b/gcc/c-family/portcosmo.h
-@@ -0,0 +1,13 @@
+@@ -0,0 +1,12 @@
 +#ifndef PORTCOSMO_H
 +#define PORTCOSMO_H
 +#include <tree.h>
@@ -1150,8 +1126,7 @@ index 000000000..b25d8257b
 +void portcosmo_pre_genericize(void*);
 +void portcosmo_finish_decl(void*);
 +void portcosmo_show_tree(location_t, tree);
-+tree patch_case_nonconst(location_t, tree);
-+tree patch_init_nonconst(location_t, tree);
++tree portcosmo_patch_nonconst(location_t, tree);
 +
 +#endif /* PORTCOSMO_H */
 diff --git a/gcc/c-family/portcosmo.internal.h b/gcc/c-family/portcosmo.internal.h
@@ -1218,10 +1193,10 @@ index 000000000..ad5eaa7c6
 +#endif /* PORTCOSMO.INTERNAL_H */
 diff --git a/gcc/c-family/subcontext.cc b/gcc/c-family/subcontext.cc
 new file mode 100644
-index 000000000..40d180b2c
+index 000000000..e97689bc7
 --- /dev/null
 +++ b/gcc/c-family/subcontext.cc
-@@ -0,0 +1,245 @@
+@@ -0,0 +1,243 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -1243,13 +1218,12 @@ index 000000000..40d180b2c
 +#include "c-family/subcontext.h"
 +
 +subu_node *build_subu(const location_t loc, const char *name,
-+                      unsigned int namelen, SubstType tp) {
++                      unsigned int namelen) {
 +  /* xmalloc because malloc is poisoned by gcc-plugin's system.h */
 +  subu_node *res = (subu_node *)xmalloc(sizeof(subu_node));
 +  res->next = NULL;
 +  res->loc = loc;
 +  res->name = xstrndup(name, namelen);
-+  res->tp = tp;
 +  DEBUGF("allocated subu_node at %p\n", res);
 +  return res;
 +};
@@ -1260,7 +1234,6 @@ index 000000000..40d180b2c
 +  node->loc = 0x0;
 +  free(node->name);
 +  node->next = NULL;
-+  node->tp = PORTCOSMO_UNKNOWN;
 +  free(node);
 +}
 +
@@ -1433,9 +1406,9 @@ index 000000000..40d180b2c
 +}
 +
 +void add_context_subu(SubContext *ctx, const location_t loc, const char *defn,
-+                      unsigned int at, SubstType st) {
++                      unsigned int at) {
 +  if (ctx->mods == NULL) return;
-+  add_subu_elem(ctx->mods, build_subu(loc, defn, at, st));
++  add_subu_elem(ctx->mods, build_subu(loc, defn, at));
 +}
 +
 +void check_context_clear(SubContext *ctx, location_t start) {
@@ -1469,10 +1442,10 @@ index 000000000..40d180b2c
 +}
 diff --git a/gcc/c-family/subcontext.h b/gcc/c-family/subcontext.h
 new file mode 100644
-index 000000000..e4ffaad0c
+index 000000000..493a99c1a
 --- /dev/null
 +++ b/gcc/c-family/subcontext.h
-@@ -0,0 +1,103 @@
+@@ -0,0 +1,91 @@
 +#ifndef SUBCONTEXT_H
 +#define SUBCONTEXT_H
 +#include "c-family/portcosmo.internal.h"
@@ -1480,44 +1453,36 @@ index 000000000..e4ffaad0c
 +#include "hash-map.h"
 +#include "hash-traits.h"
 +
-+enum SubstType { 
-+    PORTCOSMO_UNKNOWN = 0, 
-+    PORTCOSMO_SWCASE = 1, 
-+    PORTCOSMO_INITVAL = 2 
-+};
-+
 +struct subu_node {
-+  /* a node indicating that an ifswitch substitution has occurred.
-+   *
-+   * Details include:
-+   *
-+   * - location_t of the substitution
-+   * - char* of name of the macro that was substituted (alloc'd)
-+   * - whether the substitution was inside a switch statement
-+   * - _subu_node* pointer to the next element in the list (NULL if last)
-+   *
-+   * the idea is that every time one of our modified macros is used,
-+   * we record the substitution, and then we delete this record if
-+   * we find the appropriate location_t during pre-genericize and
-+   * construct the necessary parse trees at that point.
-+   *
-+   * at the end of compilation (ie PLUGIN_FINISH), there should be
-+   * no subu_nodes allocated.
-+   */
-+  location_t loc;
-+  SubstType tp;
-+  char *name;
-+  struct subu_node *next;
++    /* a node indicating that an ifswitch substitution has occurred.
++     *
++     * Details include:
++     *
++     * - location_t of the substitution
++     * - char* of name of the macro that was substituted (alloc'd)
++     * - _subu_node* pointer to the next element in the list (NULL if last)
++     *
++     * the idea is that every time one of our modified macros is used,
++     * we record the substitution, and then we delete this record if
++     * we find the appropriate location_t during pre-genericize and
++     * construct the necessary parse trees at that point.
++     *
++     * at the end of compilation (ie PLUGIN_FINISH), there should be
++     * no subu_nodes allocated.
++     */
++    location_t loc;
++    char *name;
++    struct subu_node *next;
 +};
 +
 +typedef struct subu_node subu_node;
 +
 +struct subu_list {
-+  subu_node *head;
-+  /* inclusive bounds, range containing all recorded substitutions */
-+  location_t start, end;
-+  /* number of substitutions */
-+  int count;
++    subu_node *head;
++    /* inclusive bounds, range containing all recorded substitutions */
++    location_t start, end;
++    /* number of substitutions */
++    int count;
 +};
 +typedef struct subu_list subu_list;
 +
@@ -1533,39 +1498,35 @@ index 000000000..e4ffaad0c
 +};
 +typedef struct tmpconst tmpconst;
 +
-+struct free_string_hash : pointer_hash<char>, typed_free_remove <char> {
-+  static inline hashval_t hash (char *id) {
-+    return htab_hash_string (id);
-+  };
-+  static inline bool equal (char *a, char *b) {
-+    return strcmp(a, b) == 0;
-+  };
++struct free_string_hash : pointer_hash<char>, typed_free_remove<char> {
++    static inline hashval_t hash(char *id) { return htab_hash_string(id); };
++    static inline bool equal(char *a, char *b) { return strcmp(a, b) == 0; };
 +};
 +using tmpmap_traits = simple_hashmap_traits<free_string_hash, tmpconst>;
 +using tmpmap = hash_map<char, tmpconst, tmpmap_traits>;
 +
 +/* Substitution Context */
 +struct SubContext {
-+  /* record all macro uses */
-+  subu_list *mods;
-+  /* address of the previous statement we walked through,
-+   * in case we missed modding it and have to retry */
-+  tree *prev;
-+  /* count number of switch statements rewritten */
-+  unsigned int switchcount;
-+  /* count number of initializations rewritten */
-+  unsigned int initcount;
-+  /* count number of other substitutions rewritten */
-+  unsigned int subcount;
-+  /* if zero, it means we haven't started or something
-+   * went wrong somewhere */
-+  int active;
-+  /* store values of all temporary constants */
-+  tmpmap *map;
++    /* record all macro uses */
++    subu_list *mods;
++    /* address of the previous statement we walked through,
++     * in case we missed modding it and have to retry */
++    tree *prev;
++    /* count number of switch statements rewritten */
++    unsigned int switchcount;
++    /* count number of initializations rewritten */
++    unsigned int initcount;
++    /* count number of other substitutions rewritten */
++    unsigned int subcount;
++    /* if zero, it means we haven't started or something
++     * went wrong somewhere */
++    int active;
++    /* store values of all temporary constants */
++    tmpmap *map;
 +};
 +
 +void add_context_subu(SubContext *, const location_t, const char *,
-+                      unsigned int, SubstType);
++                      unsigned int);
 +void construct_context(SubContext *);
 +void check_context_clear(SubContext *, location_t);
 +void cleanup_context(SubContext *);
@@ -1822,7 +1783,7 @@ index 53b2b5b63..51f3a72e5 100644
  	  c_genericize (fndecl);
  
 diff --git a/gcc/c/c-typeck.c b/gcc/c/c-typeck.c
-index b5d139e5d..45be3af80 100644
+index b5d139e5d..95be84d2d 100644
 --- a/gcc/c/c-typeck.c
 +++ b/gcc/c/c-typeck.c
 @@ -46,6 +46,7 @@ along with GCC; see the file COPYING3.  If not see
@@ -1853,7 +1814,7 @@ index b5d139e5d..45be3af80 100644
 -	  error_init (init_loc, "initializer element is not constant");
 -	  inside_init = error_mark_node;
 +      if (flag_portcosmo) {
-+        inside_init = patch_init_nonconst(init_loc, inside_init);
++        inside_init = portcosmo_patch_nonconst(init_loc, inside_init);
 +        if (inside_init == NULL_TREE) {
 +	      error_init (init_loc, "initializer element is not constant 8177");
 +	      inside_init = error_mark_node;
@@ -1873,7 +1834,7 @@ index b5d139e5d..45be3af80 100644
 -	  error_init (init_loc, "initializer element is not constant");
 -	  inside_init = error_mark_node;
 +	  if (flag_portcosmo) {
-+        inside_init = patch_init_nonconst(init_loc, inside_init);
++        inside_init = portcosmo_patch_nonconst(init_loc, inside_init);
 +        if (inside_init == NULL_TREE) {
 +	      error_init (init_loc, "initializer element is not constant 8226");
 +	      inside_init = error_mark_node;
@@ -1967,6 +1928,39 @@ index 155be74ef..2fe9484ff 100644
  
  ifeq ($(if $(wildcard ../stage_current),$(shell cat \
    ../stage_current)),stageautofeedback)
+diff --git a/gcc/cp/constexpr.c b/gcc/cp/constexpr.c
+index 147f6307e..043aa6ada 100644
+--- a/gcc/cp/constexpr.c
++++ b/gcc/cp/constexpr.c
+@@ -36,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
+ #include "fold-const-call.h"
+ #include "stor-layout.h"
+ #include "cgraph.h"
++#include "c-family/portcosmo.h"
+ 
+ static bool verify_constant (tree, bool, bool *, bool *);
+ #define VERIFY_CONSTANT(X)						\
+@@ -6181,8 +6182,18 @@ cxx_eval_constant_expression (const constexpr_ctx *ctx, tree t,
+ 	r = TARGET_EXPR_INITIAL (r);
+       if (DECL_P (r))
+ 	{
+-	  if (!ctx->quiet)
+-	    non_const_var_error (loc, r);
++	  if (!ctx->quiet) {
++        if (flag_portcosmo) {
++          tree subs = portcosmo_patch_nonconst(loc, r);
++          if (subs == NULL_TREE) {
++              non_const_var_error(loc, r);
++          } else {
++              return subs;
++          }
++        } else {
++	      non_const_var_error (loc, r);
++        }
++      }
+ 	  *non_constant_p = true;
+ 	}
+       break;
 diff --git a/gcc/cp/decl.c b/gcc/cp/decl.c
 index 5e101ffb8..1f68dddbf 100644
 --- a/gcc/cp/decl.c
@@ -2052,8 +2046,3 @@ index 000000000..bf01d9aeb
 +                             DECL_SOURCE_LOCATION(ind));
 +  */
 +}
-diff --git a/README b/gcc_README
-similarity index 100%
-rename from README
-rename to gcc_README
-
