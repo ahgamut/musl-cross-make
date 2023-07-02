@@ -1,19 +1,18 @@
 diff --git a/README.md b/README.md
 new file mode 100644
-index 000000000..f5248e31e
+index 000000000..f471c05fe
 --- /dev/null
 +++ b/README.md
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,63 @@
 +# `-fportcosmo`: patching `gcc` to build C software with Cosmopolitan Libc
 +
 +This 2kLOC `gcc` patch simplifies the compilation of C software with
 +[Cosmopolitan Libc][cosmo], specifically solving the issues related to system
 +constants (it avoids the `switch case is not constant` and `initializer element
-+is not constant` errors by rewriting the AST at the necessary locations).
-+
-+The code is based on [my experimental GCC plugin][plugin], with simplications
-+and extra features from being able to patch gcc itself. All my code in this
-+patch is under the [ISC License][isc].
++is not constant` errors by rewriting the AST at the necessary locations). The
++code is based on [my experimental GCC plugin][plugin], with simplifications and
++extra features from being able to patch gcc itself. All my code in this patch is
++under the [ISC License][isc].
 +
 +## How to use this feature?
 +
@@ -27,10 +26,9 @@ index 000000000..f5248e31e
 +  along with the [`cosmocc` wrapper script][cosmocc].
 +
 +Once you have built `gcc` with this patch, just pass `-fportcosmo` as a compiler
-+flag when building your C software. **For advanced users**: if you'd prefer to
-+use specific temporary integer values to be used during the AST patching
-+process, you can `#define` them with the `__tmpcosmo_` prefix, like `#define
-+__tmpcosmo_SIGILL 15782233`.
++flag when building your C software. If you'd prefer specific temporary integer
++values to be used during the AST patching process, you can `#define` them with
++the `__tmpcosmo_` prefix, like `#define __tmpcosmo_SIGILL 15782233`.
 +
 +## How does it work?
 +
@@ -42,7 +40,8 @@ index 000000000..f5248e31e
 +  compile-time constant, which it isn't
 +* this patch activates and avoids the "error" by providing a temporary `int32_t`
 +  constant to the AST, which you can provide via a `#define __tmpcosmo_SIGILL`
-+  in your code, or let the patch choose it automatically
++  in your code, or let the patch choose it automatically with values starting
++  from 15840000
 +* after the complete AST has been constructed, this patch walks through the AST
 +  rewriting subtrees wherever the patch was activated earlier: `switch`
 +  statements are rewritten into `if-else` statements (with appropriate `goto`s
@@ -51,13 +50,16 @@ index 000000000..f5248e31e
 +  globals or an `if` for locals). No other part of the code being compiled is
 +  affected.
 +
-+For an extended explanation, refer to the three READMEs [with my plugin][plugin].
++For an extended explanation, refer to the three READMEs [with my
++plugin][plugin].  Note that this patch currently does not work with: 
 +
-+Note that this patch currently does not work with: `g++` (due to `constexpr`
-+interference), `enum`s (rewrite to `#define`s instead), or wacky situtations
-+where `SIGILL` is used as an array index within an initializer (hello pls
-+`busybox` why). Finally, remember this patch is just a convenience -- you could
-+always rewrite the `switch` statements and `struct initializers` manually.
++* `g++` (due to `constexpr` interference, but now most switch cases would work)
++* `enum`s (rewrite to `#define`s instead), or 
++* wacky situtations where `SIGILL` is used as an array index within an
++  initializer (hello pls `busybox` why). 
++
++Finally, remember this patch is just a convenience -- you could always rewrite
++the `switch` statements and `struct` initializers manually.
 +
 +[cosmo]: https://github.com/jart/cosmopolitan
 +[isc]: https://www.gnu.org/licenses/license-list.html#ISC
@@ -428,10 +430,10 @@ index 000000000..ccf78067f
 +#endif /* IFSWITCH_H */
 diff --git a/gcc/c-family/initstruct.cc b/gcc/c-family/initstruct.cc
 new file mode 100644
-index 000000000..b0162406c
+index 000000000..52ed28499
 --- /dev/null
 +++ b/gcc/c-family/initstruct.cc
-@@ -0,0 +1,396 @@
+@@ -0,0 +1,388 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -670,12 +672,6 @@ index 000000000..b0162406c
 +    append_to_statement_list(
 +        build2(MODIFY_EXPR, void_type_node, dcl, replacement),
 +        &then_clause);
-+    /*
-+    append_to_statement_list(
-+        build_call_expr(VAR_NAME_AS_TREE("printf"), 1,
-+                        BUILD_STRING_AS_TREE("initstruct magic\n")),
-+        &then_clause);
-+    */
 +
 +    /* create the if statement into the overall result mentioned above */
 +    tree res = alloc_stmt_list();
@@ -725,9 +721,7 @@ index 000000000..b0162406c
 +    }
 +    if (found) {
 +      DEBUGF("found\n");
-+      // debug_tree(CONSTRUCTOR_ELT(ctor, i)->index);
 +      CONSTRUCTOR_ELT(ctor, i)->value = replacement;
-+      // debug_tree(CONSTRUCTOR_ELT(ctor, i)->value);
 +      remove_subu_elem(list, use);
 +      replacement = NULL_TREE;
 +    } else {
@@ -851,7 +845,7 @@ index 000000000..f77fba707
 +#endif /* INITSTRUCT_H */
 diff --git a/gcc/c-family/portcosmo.cc b/gcc/c-family/portcosmo.cc
 new file mode 100644
-index 000000000..5b4d09b2d
+index 000000000..d8198af96
 --- /dev/null
 +++ b/gcc/c-family/portcosmo.cc
 @@ -0,0 +1,256 @@
@@ -960,7 +954,7 @@ index 000000000..5b4d09b2d
 +}
 +
 +tree portcosmo_patch_nonconst(location_t loc, tree t) {
-+    INFORM(loc, "attempting case substitution at: line %u, col %u\n",
++    INFORM(loc, "attempting substitution at: line %u, col %u\n",
 +           LOCATION_LINE(loc), LOCATION_COLUMN(loc));
 +    tree subs = NULL_TREE;
 +    const char *name = NULL;
@@ -1442,10 +1436,10 @@ index 000000000..e97689bc7
 +}
 diff --git a/gcc/c-family/subcontext.h b/gcc/c-family/subcontext.h
 new file mode 100644
-index 000000000..493a99c1a
+index 000000000..280ef0b71
 --- /dev/null
 +++ b/gcc/c-family/subcontext.h
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,74 @@
 +#ifndef SUBCONTEXT_H
 +#define SUBCONTEXT_H
 +#include "c-family/portcosmo.internal.h"
@@ -1454,22 +1448,6 @@ index 000000000..493a99c1a
 +#include "hash-traits.h"
 +
 +struct subu_node {
-+    /* a node indicating that an ifswitch substitution has occurred.
-+     *
-+     * Details include:
-+     *
-+     * - location_t of the substitution
-+     * - char* of name of the macro that was substituted (alloc'd)
-+     * - _subu_node* pointer to the next element in the list (NULL if last)
-+     *
-+     * the idea is that every time one of our modified macros is used,
-+     * we record the substitution, and then we delete this record if
-+     * we find the appropriate location_t during pre-genericize and
-+     * construct the necessary parse trees at that point.
-+     *
-+     * at the end of compilation (ie PLUGIN_FINISH), there should be
-+     * no subu_nodes allocated.
-+     */
 +    location_t loc;
 +    char *name;
 +    struct subu_node *next;
@@ -1530,7 +1508,6 @@ index 000000000..493a99c1a
 +void construct_context(SubContext *);
 +void check_context_clear(SubContext *, location_t);
 +void cleanup_context(SubContext *);
-+
 +int arg_should_be_unpatched(tree, const subu_node *, tree *);
 +
 +/* declaring cosmo_ctx here so initstruct knows it exists */
