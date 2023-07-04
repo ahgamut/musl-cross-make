@@ -109,7 +109,7 @@ FULL_GCC_CONFIG += --with-build-sysroot=$(CURDIR)/obj_sysroot \
 	STRIP_FOR_TARGET=$(PWD)/obj_binutils/binutils/strip-new \
 	--build=$(BUILD) --host=$(BUILD) \
 	# end
-FULL_MUSL_CONFIG += CC="$(XGCC)" LIBCC="../obj_gcc/$(TARGET)/libgcc/libgcc.a" 
+FULL_MUSL_CONFIG += CC="$(CC)" LIBCC="../obj_gcc/$(TARGET)/libgcc/libgcc.a" 
 MUSL_VARS = AR=../obj_binutils/binutils/ar RANLIB=../obj_binutils/binutils/ranlib
 obj_musl/.lc_configured: | obj_gcc/gcc/.lc_built
 obj_musl/.lc_built: | obj_gcc/$(TARGET)/libgcc/libgcc.a
