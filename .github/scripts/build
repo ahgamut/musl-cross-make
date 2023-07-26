@@ -13,20 +13,6 @@ cd $COSMOS
 mkdir -p include bin lib libexec share
 cd $BASELOC
 
-echo "Compiling Cosmopolitan Libc"
-# https://github.com/ahgamut/cosmopolitan/tree/gccbuild
-# 455c9c89f7e6595ed26b96c1c0175e37f9ad3f9f
-git clone https://github.com/ahgamut/cosmopolitan --depth=1 --branch=gccbuild
-
-cd $COSMO
-make -j2 toolchain
-make -j2 o//third_party/zlib
-make -j2 o//third_party/zlib/gz
-make -j2 o//third_party/zstd
-make -j2 o//tool/build/zipcopy.com
-make -j2 o//third_party/zip
-make -j2 o//third_party/unzip
-
 echo "Setting up cosmocc"
 
 export CC=$COSMO/tool/scripts/cosmocc

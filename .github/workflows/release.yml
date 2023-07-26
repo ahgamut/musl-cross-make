@@ -13,8 +13,10 @@ jobs:
         run: sudo wget https://justine.lol/ape.elf -O /usr/bin/ape
       - name: support ape bins 2
         run: sudo sh -c "echo ':APE:M::MZqFpD::/usr/bin/ape:' >/proc/sys/fs/binfmt_misc/register"
-      - name: Generate the artifacts
-        run: bash ./.github/scripts/build
+      - name: build cosmo repo
+        run: bash ./.github/scripts/cosmo
+      - name: build gcc
+        run: sh ./.github/scripts/build
       - name: Upload the artifacts
         uses: skx/github-action-publish-binaries@master
         env:
