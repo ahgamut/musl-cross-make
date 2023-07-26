@@ -3,9 +3,9 @@ set -eux
 
 echo "Initial Setup"
 export BASELOC=./
-export COSMO=./cosmo
-export COSMOS=./cosmos
-export RESULTS=./results
+export COSMO=$BASELOC/cosmopolitan
+export COSMOS=$BASELOC/cosmos
+export RESULTS=$BASELOC/results
 
 mkdir -p $COSMOS
 cd $COSMOS
@@ -14,7 +14,7 @@ cd $BASELOC
 
 echo "Compiling Cosmopolitan Libc"
 # https://github.com/jart/cosmopolitan/commit/6843150e0c6322f50cda0ce59cca0b2e7397a3a7
-git clone https://github.com/jart/cosmopolitan --depth=1 cosmo
+git clone https://github.com/jart/cosmopolitan --depth=1
 
 cd $COSMO
 make -j4 toolchain
