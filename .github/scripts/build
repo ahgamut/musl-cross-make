@@ -7,19 +7,19 @@ export COSMO=./cosmo
 export COSMOS=./cosmos
 export RESULTS=./results
 
-mkdir $COSMOS
+mkdir -p $COSMOS
 cd $COSMOS
-mkdir include bin lib libexec share
+mkdir -p include bin lib libexec share
 cd $BASELOC
 
 echo "Compiling Cosmopolitan Libc"
 # https://github.com/jart/cosmopolitan/commit/6843150e0c6322f50cda0ce59cca0b2e7397a3a7
-git clone https://github.com/jart/cosmopolitan --depth=1 $COSMO
+git clone https://github.com/jart/cosmopolitan --depth=1 cosmo
 
 cd $COSMO
 make -j4 toolchain
 make -j4 o//third_party/zlib
-make -j4 o//third_party/zlib/gzlib
+make -j4 o//third_party/zlib/gz
 make -j4 o//third_party/zstd
 make -j4 o//tool/build/zipcopy.com
 make -j4 o//third_party/zip
@@ -43,11 +43,11 @@ echo "Setting up libz and libzstd in $COSMOS"
 cd $COSMOS
 
 cp $COSMO/o/third_party/zstd/zstd.a ./lib/libzstd.a
-echo '#include "third_party/zstd/zstd.h" >> ./include/zstd.h
+echo '#include "third_party/zstd/zstd.h"' >> ./include/zstd.h
 
 cp $COSMO/o/third_party/zlib/zlib.a ./lib/libz.a
 $AR rcu $COSMO/o/third_party/zlib/gzlib/*.o ./lib/libz.a
-echo '#include "third_party/zlib/zlib.h" >> ./include/zlib.h
+echo '#include "third_party/zlib/zlib.h"' >> ./include/zlib.h
 
 echo "building musl-cross-make"
 cd $BASELOC
