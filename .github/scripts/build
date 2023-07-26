@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -eux
+
+# set -eux
 
 echo "Initial Setup"
 export BASELOC=$PWD
@@ -47,7 +48,7 @@ cp $COSMO/o/third_party/zstd/zstd.a ./lib/libzstd.a
 echo '#include "third_party/zstd/zstd.h"' >> ./include/zstd.h
 
 cp $COSMO/o/third_party/zlib/zlib.a ./lib/libz.a
-$AR rcu ./lib/libz.a $COSMO/o/third_party/zlib/gz/*.o
+$AR rc ./lib/libz.a $COSMO/o/third_party/zlib/gz/*.o
 echo '#include "third_party/zlib/zlib.h"' >> ./include/zlib.h
 
 echo "building musl-cross-make"
@@ -60,35 +61,42 @@ make install -j4 -i
 
 echo "creating actually portable executables"
 
-mkdir -p $RESULTS
-for FILE in $(ls $COSMOS/bin/*); do
+dbgcopy () {
+    FILE="$1"
     f="$(basename -- $FILE)"
     f2="${f#x86_64-linux-musl-}"
     cp "$FILE" "$RESULTS/$f2.com.dbg"
+}
+
+mkdir -p $RESULTS
+for FILE0 in $(ls $COSMOS/bin/*); do
+    dbgcopy "$FILE0"
 done
 
-cp $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/install-tools/fixincl $RESULTS/
-cp $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/cc1 $RESULTS/
-cp $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/cc1plus $RESULTS/
-cp $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/collect2 $RESULTS/
-cp $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/lto-wrapper $RESULTS/
-cp $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/g++-mapper-server $RESULTS/
+dbgcopy $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/install-tools/fixincl
+dbgcopy $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/cc1
+dbgcopy $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/cc1plus
+dbgcopy $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/collect2
+dbgcopy $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/lto-wrapper
+dbgcopy $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/g++-mapper-server
 
 cd $RESULTS
 for FILE in $(ls ./*.com.dbg); do
-   ape="${FILE%%.*}.com"
-   $OBJCOPY -SO binary "$FILE" "$ape"
-   $ZIPCOPY "$FILE" "$ape"
+   APE="${FILE%.*}"
+   $OBJCOPY -SO binary "$FILE" "$APE"
+   $ZIPCOPY "$FILE" "$APE"
 done
 
 echo "zip file with actually portable executables"
 cd $BASELOC
-tar -zcvf gcc11.tar.gz ./bin/*.com
+ZFILE=gcc11.zip
+find ./bin -name '*.com' -print0 | xargs -0 zip "$ZFILE"
 
 echo "second zip file with dbg"
 cd $BASELOC
-tar -zcvf gcc11-dbg.tar.gz ./bin/*.com ./bin/*.com.dbg
+ZFILE=gcc11-dbg.zip
+find ./bin -maxdepth 1 -name '*.com*' -print0 | xargs -0 zip "$ZFILE"
 
 echo "DONE."
 cd $BASELOC
-ls -al gcc11*.tar.gz
+ls -al gcc11*.zip
