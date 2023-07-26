@@ -1,3 +1,10 @@
+I_WANT_TMPFS.sh
+*.tar.gz
+*.com
+*.com.dbg
+/cosmopolitan
+/cosmos
+/bin
 /config.mak
 /sources/
 /output/

@@ -3,8 +3,6 @@
 #
 # Copy to config.mak and edit as desired.
 #
-COSMO=${COSMO}
-COSMOS=${COSMOS}
 
 # There is no default TARGET; you must select one here or on the make
 # command line. Some examples:
@@ -23,7 +21,7 @@ TARGET = x86_64-linux-musl
 
 # OUTPUT = /opt/cross
 # OUTPUT = /usr/local
-OUTPUT = $(COSMOS)
+OUTPUT = ${COSMOS}
 
 # By default, latest supported release versions of musl and the toolchain
 # components are used. You can override those here, but the version selected
@@ -68,11 +66,11 @@ MUSL_CONFIG += CFLAGS="-O2"
 
 # COMMON_CONFIG += CC="/opt/cross/bin/x86_64-linux-musl-gcc -static --static"
 # COMMON_CONFIG += CXX="/opt/cross/bin/x86_64-linux-musl-g++ -static --static"
-COMMON_CONFIG += CC="$(COSMOS)/bin/cosmocc" 
+COMMON_CONFIG += CC="${COSMO}/bin/cosmocc" 
 # COMMON_CONFIG += CFLAGS="-static"
-COMMON_CONFIG += CXX="$(COSMOS)/bin/cosmoc++"
+COMMON_CONFIG += CXX="${COSMO}/bin/cosmoc++"
 # COMMON_CONFIG += CXXFLAGS="-static"
-COMMON_CONFIG += LDFLAGS="-L/opt/cosmos/lib -lz"
+COMMON_CONFIG += LDFLAGS="-L${COSMOS}/lib -lz"
 COMMON_CONFIG += --with-system-zlib  --disable-shared --enable-static
 # COMMON_CONFIG += CFLAGS="-g3 -ggdb3"
 
