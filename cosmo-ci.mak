@@ -63,12 +63,13 @@ DL_CMD = wget -c -O
 # MUSL_CONFIG += --enable-debug
 # MUSL_CONFIG += CFLAGS="-Os -fno-omit-frame-pointer -fno-optimize-sibling-calls -mno-omit-leaf-frame-pointer"
 MUSL_CONFIG += CFLAGS="-O2"
+MUSL_CONFIG += --disable-shared
 
 # COMMON_CONFIG += CC="/opt/cross/bin/x86_64-linux-musl-gcc -static --static"
 # COMMON_CONFIG += CXX="/opt/cross/bin/x86_64-linux-musl-g++ -static --static"
-COMMON_CONFIG += CC="${COSMO}/bin/cosmocc" 
+COMMON_CONFIG += CC="${COSMO}/tool/scripts/cosmocc" 
 # COMMON_CONFIG += CFLAGS="-static"
-COMMON_CONFIG += CXX="${COSMO}/bin/cosmoc++"
+COMMON_CONFIG += CXX="${COSMO}/tool/scripts/cosmoc++"
 # COMMON_CONFIG += CXXFLAGS="-static"
 COMMON_CONFIG += LDFLAGS="-L${COSMOS}/lib -lz"
 COMMON_CONFIG += --with-system-zlib  --disable-shared --enable-static
