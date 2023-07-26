@@ -14,9 +14,7 @@ jobs:
       - name: support ape bins 2
         run: sudo sh -c "echo ':APE:M::MZqFpD::/usr/bin/ape:' >/proc/sys/fs/binfmt_misc/register"
       - name: Generate the artifacts
-        uses: skx/github-action-build@master
-        with: 
-          builder: .github/scripts/build
+        run: sudo bash ./.github/scripts/build
       - name: Upload the artifacts
         uses: skx/github-action-publish-binaries@master
         env:
