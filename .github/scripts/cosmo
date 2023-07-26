@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -eux
+# set -eux
 
 echo "Initial Setup"
 export BASELOC=$PWD
@@ -13,10 +13,10 @@ echo "Compiling Cosmopolitan Libc"
 # git clone https://github.com/ahgamut/cosmopolitan --depth=1 --branch=gccbuild
 
 cd $COSMO
-make -j2 MODE="" toolchain
-make -j2 MODE="" o//third_party/zlib
-make -j2 MODE="" o//third_party/zlib/gz
-make -j2 MODE="" o//third_party/zstd
-make -j2 MODE="" o//tool/build/zipcopy.com
-make -j2 MODE="" o//third_party/zip
-make -j2 MODE="" o//third_party/unzip
+make -j2 V=0 MODE="" toolchain
+make -j2 V=0 MODE="" o//third_party/zlib
+make -j2 V=0 MODE="" o//third_party/zlib/gz
+make -j2 V=0 MODE="" o//third_party/zstd
+make -j2 V=0 MODE="" o//tool/build/zipcopy.com
+make -j2 V=0 MODE="" o//third_party/zip
+make -j2 V=0 MODE="" o//third_party/unzip

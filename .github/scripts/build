@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -eux
+# set -eux
 
 echo "Initial Setup"
 export BASELOC=$PWD
@@ -39,10 +39,10 @@ echo '#include "third_party/zlib/zlib.h"' >> ./include/zlib.h
 echo "building musl-cross-make"
 cd $BASELOC
 cp cosmo-ci.mak config.mak
-make -j2
+make V=0 -j2
 
 echo "installing musl-cross-make"
-make install -i -j2
+make V=0 install -i -j2
 
 echo "creating actually portable executables"
 
