@@ -9,14 +9,16 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@master
+      - name: Checkout cosmo repo
+        run: git clone https://github.com/ahgamut/cosmopolitan --depth=1 --branch=gccbuild
       - name: support ape bins 1
-        run: sudo wget https://justine.lol/ape.elf -O /usr/bin/ape
+        run: sudo cp cosmopolitan/build/bootstrap/ape.elf /usr/bin/ape
       - name: support ape bins 2
         run: sudo sh -c "echo ':APE:M::MZqFpD::/usr/bin/ape:' >/proc/sys/fs/binfmt_misc/register"
       - name: build cosmo repo
         run: bash ./.github/scripts/cosmo
       - name: build gcc
-        run: sh ./.github/scripts/build
+        run: bash ./.github/scripts/build
       - name: Upload the artifacts
         uses: skx/github-action-publish-binaries@master
         env:

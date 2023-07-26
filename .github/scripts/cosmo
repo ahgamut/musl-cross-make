@@ -10,7 +10,7 @@ export RESULTS=$BASELOC/bin
 echo "Compiling Cosmopolitan Libc"
 # https://github.com/ahgamut/cosmopolitan/tree/gccbuild
 # 455c9c89f7e6595ed26b96c1c0175e37f9ad3f9f
-git clone https://github.com/ahgamut/cosmopolitan --depth=1 --branch=gccbuild
+# git clone https://github.com/ahgamut/cosmopolitan --depth=1 --branch=gccbuild
 
 cd $COSMO
 make -j2 MODE="" toolchain
