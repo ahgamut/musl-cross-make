@@ -19,6 +19,8 @@ echo "Compiling Cosmopolitan Libc"
 git clone https://github.com/ahgamut/cosmopolitan --depth=1 --branch=gccbuild
 
 cd $COSMO
+sudo ape/apeinstall.sh
+
 make -j4 toolchain
 make -j4 o//third_party/zlib
 make -j4 o//third_party/zlib/gz
@@ -78,6 +80,8 @@ dbgcopy $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/cc1plus
 dbgcopy $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/collect2
 dbgcopy $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/lto-wrapper
 dbgcopy $COSMOS/libexec/gcc/x86_64-linux-musl/11.2.0/g++-mapper-server
+
+cp "$ZIPCOPY.dbg" "$RESULTS"
 
 cd $RESULTS
 for FILE in $(ls ./*.com.dbg); do
