@@ -18,7 +18,6 @@ echo "Compiling Cosmopolitan Libc"
 git clone https://github.com/jart/cosmopolitan --depth=1
 
 cd $COSMO
-pwd
 make -j4 toolchain
 make -j4 o//third_party/zlib
 make -j4 o//third_party/zlib/gz
@@ -35,7 +34,6 @@ export LD=$COSMO/tool/scripts/cosmoc++
 export AR=$COSMO/o/third_party/gcc/bin/x86_64-linux-musl-ar
 export OBJCOPY=$COSMO/o/third_party/gcc/bin/x86_64-linux-musl-objcopy
 export ZIPCOPY=$COSMO/o/tool/build/zipcopy.com
-export ZIP=$COSMO/o/third_party/zip/zip.com
 
 cd $BASELOC
 $CC sample.c -o sample.com
@@ -57,7 +55,7 @@ cp cosmo-ci.mak config.mak
 make -j4
 
 echo "installing musl-cross-make"
-make install -j4 -i
+make install -i -j4
 
 echo "creating actually portable executables"
 
@@ -90,12 +88,12 @@ done
 echo "zip file with actually portable executables"
 cd $BASELOC
 ZFILE=gcc11.zip
-find ./bin -name '*.com' -print0 | xargs -0 zip "$ZFILE"
+find ./bin -maxdepth 1 -name '*.com' -print0 | tee /dev/tty | xargs -0 zip "$ZFILE"
 
 echo "second zip file with dbg"
 cd $BASELOC
 ZFILE=gcc11-dbg.zip
-find ./bin -maxdepth 1 -name '*.com*' -print0 | xargs -0 zip "$ZFILE"
+find ./bin -maxdepth 1 -name '*.com*' -print0 | tee /dev/tty | xargs -0 zip "$ZFILE"
 
 echo "DONE."
 cd $BASELOC
