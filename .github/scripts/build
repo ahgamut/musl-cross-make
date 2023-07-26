@@ -18,9 +18,10 @@ echo "Compiling Cosmopolitan Libc"
 # 455c9c89f7e6595ed26b96c1c0175e37f9ad3f9f
 git clone https://github.com/ahgamut/cosmopolitan --depth=1 --branch=gccbuild
 
-cd $COSMO
-sudo ape/apeinstall.sh
+wget -O ape.elf https://justine.lol/ape.elf
+cp ape.elf /usr/bin/ape
 
+cd $COSMO
 make -j4 toolchain
 make -j4 o//third_party/zlib
 make -j4 o//third_party/zlib/gz
