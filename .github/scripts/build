@@ -14,8 +14,9 @@ mkdir -p include bin lib libexec share
 cd $BASELOC
 
 echo "Compiling Cosmopolitan Libc"
-# https://github.com/jart/cosmopolitan/commit/6843150e0c6322f50cda0ce59cca0b2e7397a3a7
-git clone https://github.com/jart/cosmopolitan --depth=1
+# https://github.com/ahgamut/cosmopolitan/tree/gccbuild
+# 455c9c89f7e6595ed26b96c1c0175e37f9ad3f9f
+git clone https://github.com/ahgamut/cosmopolitan --depth=1 --branch=gccbuild
 
 cd $COSMO
 make -j4 toolchain
