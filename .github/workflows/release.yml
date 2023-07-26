@@ -10,7 +10,7 @@ jobs:
       - name: Checkout the repository
         uses: actions/checkout@master
       - name: support ape bins 1
-        run: sudo cp build/bootstrap/ape.elf /usr/bin/ape
+        run: sudo cp cosmopolitan/build/bootstrap/ape.elf /usr/bin/ape
       - name: support ape bins 2
         run: sudo sh -c "echo ':APE:M::MZqFpD::/usr/bin/ape:' >/proc/sys/fs/binfmt_misc/register"
       - name: Generate the artifacts
