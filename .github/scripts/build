@@ -17,13 +17,13 @@ echo "Compiling Cosmopolitan Libc"
 git clone https://github.com/jart/cosmopolitan --depth=1 $COSMO
 
 cd $COSMO
-./build/bootstrap/make.com -j4 toolchain
-./build/bootstrap/make.com -j4 o//third_party/zlib
-./build/bootstrap/make.com -j4 o//third_party/zlib/gzlib
-./build/bootstrap/make.com -j4 o//third_party/zstd
-./build/bootstrap/make.com -j4 o//tool/build/zipcopy.com
-./build/bootstrap/make.com -j4 o//third_party/zip
-./build/bootstrap/make.com -j4 o//third_party/unzip
+make -j4 toolchain
+make -j4 o//third_party/zlib
+make -j4 o//third_party/zlib/gzlib
+make -j4 o//third_party/zstd
+make -j4 o//tool/build/zipcopy.com
+make -j4 o//third_party/zip
+make -j4 o//third_party/unzip
 
 echo "Setting up cosmocc"
 
