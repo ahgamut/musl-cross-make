@@ -19,13 +19,13 @@ echo "Compiling Cosmopolitan Libc"
 git clone https://github.com/ahgamut/cosmopolitan --depth=1 --branch=gccbuild
 
 cd $COSMO
-make -j4 toolchain
-make -j4 o//third_party/zlib
-make -j4 o//third_party/zlib/gz
-make -j4 o//third_party/zstd
-make -j4 o//tool/build/zipcopy.com
-make -j4 o//third_party/zip
-make -j4 o//third_party/unzip
+make -j2 toolchain
+make -j2 o//third_party/zlib
+make -j2 o//third_party/zlib/gz
+make -j2 o//third_party/zstd
+make -j2 o//tool/build/zipcopy.com
+make -j2 o//third_party/zip
+make -j2 o//third_party/unzip
 
 echo "Setting up cosmocc"
 
@@ -53,10 +53,10 @@ echo '#include "third_party/zlib/zlib.h"' >> ./include/zlib.h
 echo "building musl-cross-make"
 cd $BASELOC
 cp cosmo-ci.mak config.mak
-make -j4
+make -j2
 
 echo "installing musl-cross-make"
-make install -i -j4
+make install -i -j2
 
 echo "creating actually portable executables"
 
