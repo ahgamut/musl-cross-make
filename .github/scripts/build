@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -eux
+
+echo "Initial Setup"
+export BASELOC=./
+export COSMO=./cosmo
+export COSMOS=./cosmos
+export RESULTS=./results
+
+mkdir $COSMOS
+cd $COSMOS
+mkdir include bin lib libexec share
+cd $BASELOC
+
+echo "Compiling Cosmopolitan Libc"
+# https://github.com/jart/cosmopolitan/commit/6843150e0c6322f50cda0ce59cca0b2e7397a3a7
+git clone https://github.com/jart/cosmopolitan --depth=1 $COSMO
+
+cd $COSMO
+./build/bootstrap/make.com -j4 toolchain
+./build/bootstrap/make.com -j4 o//third_party/zlib
+./build/bootstrap/make.com -j4 o//third_party/zlib/gzlib
+./build/bootstrap/make.com -j4 o//third_party/zstd
+./build/bootstrap/make.com -j4 o//tool/build/zipcopy.com
+./build/bootstrap/make.com -j4 o//third_party/zip
+./build/bootstrap/make.com -j4 o//third_party/unzip
+
+echo "Setting up cosmocc"
+
+export CC=$COSMO/tool/scripts/cosmocc
+export CXX=$COSMO/tool/scripts/cosmoc++
+export LD=$COSMO/tool/scripts/cosmoc++
+export AR=$COSMO/o/third_party/gcc/bin/x86_64-linux-musl-ar
+export OBJCOPY=$COSMO/o/third_party/gcc/bin/x86_64-linux-musl-objcopy
+export ZIPCOPY=$COSMO/o/tool/build/zipcopy.com
+export ZIP=$COSMO/o/third_party/zip/zip.com
+
+cd $BASELOC
+$CC sample.c -o sample.com
+./sample.com
+
+echo "Setting up libz and libzstd in $COSMOS"
+cd $COSMOS
+
+cp $COSMO/o/third_party/zstd/zstd.a ./lib/libzstd.a
+echo '#include "third_party/zstd/zstd.h" >> ./include/zstd.h
+
+cp $COSMO/o/third_party/zlib/zlib.a ./lib/libz.a
+$AR rcu $COSMO/o/third_party/zlib/gzlib/*.o ./lib/libz.a
+echo '#include "third_party/zlib/zlib.h" >> ./include/zlib.h
+
+echo "building musl-cross-make"
+cd $BASELOC
+cp cosmo-ci.mak config.mak
+make -j4
+
+echo "installing musl-cross-make"
+make install -j4 -i
+
+echo "creating actually portable executables"
+
+mkdir -p $RESULTS
+cp $COSMOS/bin/* $RESULTS/
+for FILE in $(ls $COSMOS/bin/*); do
+    f="$(basename -- $FILE)"
+    f2="${f#x86_64-linux-musl-}"
+    cp "$FILE" "$RESULTS/f2"
+done
+
+cp $COSMOS/libexec/gcc/x86_64-linux-musl-11.2.0/install-tools/finxincl $RESULTS/
+cp $COSMOS/libexec/gcc/x86_64-linux-musl-11.2.0/cc1 $RESULTS/
+cp $COSMOS/libexec/gcc/x86_64-linux-musl-11.2.0/cc1plus $RESULTS/
+cp $COSMOS/libexec/gcc/x86_64-linux-musl-11.2.0/collect2 $RESULTS/
+cp $COSMOS/libexec/gcc/x86_64-linux-musl-11.2.0/lto-wrapper $RESULTS/
+cp $COSMOS/libexec/gcc/x86_64-linux-musl-11.2.0/g++-mapper-server $RESULTS/
+
+cd $RESULTS
+for FILE in $(ls ./*); do
+   echo $FILE
+   $OBJCOPY -SO binary "$FILE" "$FILE.com"
+   $ZIPCOPY "$FILE" "$FILE.com"
+done
+
+echo "zip file with actually portable executables"
+cd $BASELOC
+$ZIP gcc-11.zip $RESULTS/*.com
+
+echo "second zip file with dbg"
+cd $BASELOC
+$ZIP gcc-11-dbg.zip $RESULTS/*
+
+echo "DONE."
+cd $BASELOC
+ls -al gcc-11*.zip
