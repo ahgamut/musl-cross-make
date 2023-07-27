@@ -19,9 +19,11 @@ jobs:
         run: bash ./.github/scripts/cosmo
       - name: build gcc
         run: bash ./.github/scripts/build
-      - name: Upload the artifacts
-        uses: skx/github-action-publish-binaries@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
         with:
-          args: 'gcc11.zip'
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file_glob: true
+          file: "gcc11*.zip"
+          overwrite: true
+          body: "gcc 11 Actually Portable Executables"
