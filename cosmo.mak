@@ -76,7 +76,7 @@ COMMON_CONFIG += --with-system-zlib  --disable-shared --enable-static
 
 # Options you can add for faster/simpler build at the expense of features:
 
-COMMON_CONFIG += --disable-nls
+COMMON_CONFIG += --disable-nls --enable-portable-binary --enable-fat
 GCC_CONFIG += --disable-libquadmath --disable-decimal-float
 GCC_CONFIG += --disable-libitm
 GCC_CONFIG += --disable-fixed-point
