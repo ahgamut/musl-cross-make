@@ -67,8 +67,52 @@ index 000000000..f471c05fe
 +[mcross]: https://github.com/ahgamut/musl-cross-make/tree/portcosmo
 +[gcc-3p]: https://github.com/jart/cosmopolitan/tree/48b2afb192ec18eca40c0b25603c02a2e3b578e9/third_party/gcc
 +[cosmocc]: https://github.com/jart/cosmopolitan/blob/48b2afb192ec18eca40c0b25603c02a2e3b578e9/tool/scripts/cosmocc
+diff --git a/configure b/configure
+index 504f64102..0b6f8bffc 100755
+--- a/configure
++++ b/configure
+@@ -7775,6 +7775,7 @@ $as_echo_n "checking for the correct version of mpfr.h... " >&6; }
+     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ #include <gmp.h>
++#include <stdio.h>
+     #include <mpfr.h>
+ int
+ main ()
+@@ -7792,6 +7793,7 @@ if ac_fn_c_try_compile "$LINENO"; then :
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ #include <gmp.h>
++#include <stdio.h>
+     #include <mpfr.h>
+ int
+ main ()
+@@ -7827,6 +7829,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+ $as_echo_n "checking for the correct version of mpc.h... " >&6; }
+     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
++#include <stdio.h>
+ #include <mpc.h>
+ int
+ main ()
+@@ -7843,6 +7846,7 @@ _ACEOF
+ if ac_fn_c_try_compile "$LINENO"; then :
+   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
++#include <stdio.h>
+ #include <mpc.h>
+ int
+ main ()
+@@ -7879,6 +7883,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+ $as_echo_n "checking for the correct version of the gmp/mpfr/mpc libraries... " >&6; }
+     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
++#include <stdio.h>
+ #include <mpc.h>
+ int
+ main ()
 diff --git a/gcc/Makefile.in b/gcc/Makefile.in
-index 8a5fb3fd9..3a7498db8 100644
+index 8a5fb3fd9..080dc032a 100644
 --- a/gcc/Makefile.in
 +++ b/gcc/Makefile.in
 @@ -1231,6 +1231,10 @@ GCC_OBJS = gcc.o gcc-main.o ggc-none.o
@@ -92,6 +136,15 @@ index 8a5fb3fd9..3a7498db8 100644
  
  # Analyzer object files
  ANALYZER_OBJS = \
+@@ -2547,7 +2552,7 @@ cfn-operators.pd: s-cfn-operators; @true
+ 
+ target-hooks-def.h: s-target-hooks-def-h; @true
+ # make sure that when we build info files, the used tm.texi is up to date.
+-$(srcdir)/doc/tm.texi: s-tm-texi; @true
++$(srcdir)/doc/tm.texi: 
+ 
+ s-target-hooks-def-h: build/genhooks$(build_exeext)
+ 	$(RUN_GEN) build/genhooks$(build_exeext) "Target Hook" \
 diff --git a/gcc/c-family/c-common.c b/gcc/c-family/c-common.c
 index d227686a0..895211ba4 100644
 --- a/gcc/c-family/c-common.c
@@ -166,9 +219,27 @@ index 89e05a4c5..15c26f507 100644
  
  /* Either of two environment variables can specify output of
 diff --git a/gcc/c-family/c.opt b/gcc/c-family/c.opt
-index 2005b783c..a69a9a349 100644
+index 2005b783c..2d2127e0b 100644
 --- a/gcc/c-family/c.opt
 +++ b/gcc/c-family/c.opt
+@@ -612,7 +612,7 @@ C ObjC C++ ObjC++ Var(warn_float_equal) Warning
+ Warn if testing floating point numbers for equality.
+ 
+ Wformat
+-C ObjC C++ ObjC++ Warning Alias(Wformat=, 1, 0)
++C ObjC C++ ObjC++ Warning Alias(Wformat=, 1, 0) Init(0)
+ Warn about printf/scanf/strftime/strfmon format string anomalies.
+ 
+ Wformat-contains-nul
+@@ -620,7 +620,7 @@ C ObjC C++ ObjC++ Var(warn_format_contains_nul) Warning LangEnabledBy(C ObjC C++
+ Warn about format strings that contain NUL bytes.
+ 
+ Wformat-diag
+-C ObjC C++ ObjC++ Var(warn_format_diag) Warning LangEnabledBy(C ObjC C++ ObjC++,Wformat=, warn_format >= 1, 0)
++C ObjC C++ ObjC++ Var(warn_format_diag) Warning LangEnabledBy(ObjC ObjC++,Wformat=, warn_format >= 1, 0)
+ Warn about GCC format strings with strings unsuitable for diagnostics.
+ 
+ Wformat-extra-args
 @@ -1881,6 +1881,10 @@ fopenmp-simd
  C ObjC C++ ObjC++ Var(flag_openmp_simd)
  Enable OpenMP's SIMD directives.
@@ -182,10 +253,10 @@ index 2005b783c..a69a9a349 100644
  Recognize C++ keywords like \"compl\" and \"xor\".
 diff --git a/gcc/c-family/ifswitch.cc b/gcc/c-family/ifswitch.cc
 new file mode 100644
-index 000000000..0dab740f1
+index 000000000..067f6aef2
 --- /dev/null
 +++ b/gcc/c-family/ifswitch.cc
-@@ -0,0 +1,226 @@
+@@ -0,0 +1,245 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -323,88 +394,107 @@ index 000000000..0dab740f1
 +  return result;
 +}
 +
-+tree build_modded_switch_stmt(tree swexpr, SubContext *ctx) {
-+  int case_count = 0, break_count = 0;
-+  int has_default = 0;
++struct swmod_ctx {
++    int case_count, break_count, has_default;
++    tree swcond, swbody;
++    tree exit_label;
++    tree default_label;
++    vec<tree> *ifs;
++    SubContext *ctx;
++};
 +
-+  tree swcond = save_expr(SWITCH_STMT_COND(swexpr));
-+  tree swbody = get_switch_body(swexpr);
++tree check_switch_internals(tree *tp, int *check_subtree, void *data) {
++  struct swmod_ctx *swt = (struct swmod_ctx *)data;
++ 
++  switch(TREE_CODE(*tp)) {
++      case CASE_LABEL_EXPR:
++        swt->case_count += 1;
++        swt->has_default = swt->has_default || (CASE_LOW(*tp) == NULL_TREE);
++        /* replace the case statement with a goto */
++        *tp = modded_case_label(*tp, swt->case_count, swt->swcond,
++                    swt->ifs, swt->ctx, &(swt->default_label));
++        break;
++      case BREAK_STMT:
++        swt->break_count += 1;
++        /* replace the break statement with a goto to the end */
++        *tp = build1(GOTO_EXPR, void_type_node, LABEL_EXPR_LABEL(swt->exit_label));
++        break;
++      case BIND_EXPR:
++      case STATEMENT_LIST:
++      case COND_EXPR:
++        /* we want to check the subtrees, because 
++         * they may contain break statements */
++        break;
++      default:
++        *check_subtree = 0;
++  }
++
++  return NULL_TREE;
++}
++
++tree build_modded_switch_stmt(tree swexpr, SubContext *ctx) {
++  struct swmod_ctx mod;
 +  tree *tp = NULL;
 +  char dest[STRING_BUFFER_SIZE] = {0};
 +
-+  vec<tree> *ifs;
-+  vec_alloc(ifs, 0);
++  mod.case_count = 0;
++  mod.break_count = 0;
++  mod.has_default = 0;
++  mod.swcond = save_expr(SWITCH_STMT_COND(swexpr));
++  mod.swbody = get_switch_body(swexpr);
++  vec_alloc(mod.ifs, 0);
++  mod.exit_label = build_modded_exit_label(ctx->switchcount);
++  mod.default_label = NULL_TREE;
++  mod.ctx = ctx;
 +
-+  tree exit_label = build_modded_exit_label(ctx->switchcount);
-+  tree default_label = NULL_TREE;
++  /* TODO: maybe this should be split into two functions,
++   * one looping over and fixing the case labels, and the
++   * other walking through the tree searching for breaks.
++   */
++  walk_tree_without_duplicates(&(mod.swbody), check_switch_internals, &mod);
 +
-+  for (auto it = tsi_start(swbody); !tsi_end_p(it); tsi_next(&it)) {
-+    tp = tsi_stmt_ptr(it);
-+    if (TREE_CODE(*tp) == CASE_LABEL_EXPR) {
-+      case_count += 1;
-+      has_default = has_default || (CASE_LOW(*tp) == NULL_TREE);
-+      /* replace the case statement with a goto */
-+      *tp =
-+          modded_case_label(*tp, case_count, swcond, ifs, ctx, &default_label);
-+    } else if (TREE_CODE(*tp) == BREAK_STMT) {
-+      break_count += 1;
-+      /* replace the break statement with a goto to the end */
-+      *tp = build1(GOTO_EXPR, void_type_node, LABEL_EXPR_LABEL(exit_label));
-+    } else if (TREE_CODE(*tp) == BIND_EXPR) {
-+      for (auto it2 = tsi_start(BIND_EXPR_BODY(*tp)); !tsi_end_p(it2);
-+           tsi_next(&it2)) {
-+        auto tp2 = tsi_stmt_ptr(it2);
-+        if (TREE_CODE(*tp2) == BREAK_STMT) {
-+          break_count += 1;
-+          /* replace the break statement with a goto to the end */
-+          *tp2 =
-+              build1(GOTO_EXPR, void_type_node, LABEL_EXPR_LABEL(exit_label));
-+        }
-+      }
-+    }
-+  }
 +  /* add all the if statements to the start of the switch body */
 +  /* TODO: do we have to combine them via COND_EXPR_ELSE? why,
 +   * is it not possible to have them as a list one after the other? */
 +  tree res;
 +  unsigned int zz = 0;
-+  if (ifs->length() > 0) {
-+    res = (*ifs)[0];
-+    for (zz = 1; zz < ifs->length(); ++zz) {
-+      COND_EXPR_ELSE(res) = (*ifs)[zz];
-+      res = (*ifs)[zz];
++  if (mod.ifs->length() > 0) {
++    res = (*(mod.ifs))[0];
++    for (zz = 1; zz < mod.ifs->length(); ++zz) {
++      COND_EXPR_ELSE(res) = (*(mod.ifs))[zz];
++      res = (*(mod.ifs))[zz];
 +    }
 +    /* if we have a valid default for the switch,
 +     * it should be the final else branch */
-+    if (default_label && default_label != NULL_TREE) {
++    if (mod.default_label && mod.default_label != NULL_TREE) {
 +      COND_EXPR_ELSE(res) =
-+          build1(GOTO_EXPR, void_type_node, LABEL_EXPR_LABEL(default_label));
++          build1(GOTO_EXPR, void_type_node, LABEL_EXPR_LABEL(mod.default_label));
 +    } else {
 +      /* if we don't have a default, then the final else branch
 +       * should just jump to after the switch */
-+        COND_EXPR_ELSE(res) =
-+              build1(GOTO_EXPR, void_type_node, LABEL_EXPR_LABEL(exit_label));
++      COND_EXPR_ELSE(res) =
++          build1(GOTO_EXPR, void_type_node, LABEL_EXPR_LABEL(mod.exit_label));
 +    }
 +    /* reset to the start of the if-else tree */
-+    res = (*ifs)[0];
-+  } else if (has_default && default_label != NULL_TREE) {
++    res = (*(mod.ifs))[0];
++  } else if (mod.has_default && mod.default_label != NULL_TREE) {
 +    /* this switch has only a default? ok... */
-+    res = build1(GOTO_EXPR, void_type_node, LABEL_EXPR_LABEL(default_label));
++    res = build1(GOTO_EXPR, void_type_node, LABEL_EXPR_LABEL(mod.default_label));
 +  } else {
 +    /* this switch has no cases, and no default?! */
-+    warning_at(EXPR_LOCATION(swcond), 0, "switch without cases or default?");
-+    res = build1(GOTO_EXPR, void_type_node, LABEL_EXPR_LABEL(exit_label));
++    warning_at(EXPR_LOCATION(mod.swcond), 0, "switch without cases or default?");
++    res = build1(GOTO_EXPR, void_type_node, LABEL_EXPR_LABEL(mod.exit_label));
 +  }
-+  auto it = tsi_start(swbody);
++  auto it = tsi_start(mod.swbody);
 +  tsi_link_before(&it, res, TSI_SAME_STMT);
 +  tsi_link_before(&it, build_empty_stmt(UNKNOWN_LOCATION), TSI_SAME_STMT);
 +
 +  /* add the 'outside' of the switch, ie the 'finally'
 +   * aka the target of the break statements, the 'exit_label',
 +   * to the end of the switch body */
-+  append_to_statement_list(build_empty_stmt(UNKNOWN_LOCATION), &swbody);
-+  append_to_statement_list(exit_label, &swbody);
-+  append_to_statement_list(build_empty_stmt(UNKNOWN_LOCATION), &swbody);
++  append_to_statement_list(build_empty_stmt(UNKNOWN_LOCATION), &(mod.swbody));
++  append_to_statement_list(mod.exit_label, &(mod.swbody));
++  append_to_statement_list(build_empty_stmt(UNKNOWN_LOCATION), &(mod.swbody));
 +
 +  /* we are returning SWITCH_STMT_BODY(swexpr),
 +   * instead of just swbody, because sometimes,
@@ -2023,3 +2113,15 @@ index 000000000..bf01d9aeb
 +                             DECL_SOURCE_LOCATION(ind));
 +  */
 +}
+diff --git a/libcpp/lex.c b/libcpp/lex.c
+index 3791f3882..693d108b8 100644
+--- a/libcpp/lex.c
++++ b/libcpp/lex.c
+@@ -23,6 +23,7 @@ along with this program; see the file COPYING3.  If not see
+ #include "system.h"
+ #include "cpplib.h"
+ #include "internal.h"
++#undef __ARM_NEON
+ 
+ enum spell_type
+ {
