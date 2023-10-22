@@ -1,45 +1,48 @@
 diff --git a/README.md b/README.md
 new file mode 100644
-index 000000000..f471c05fe
+index 000000000..b750ac9c1
 --- /dev/null
 +++ b/README.md
-@@ -0,0 +1,63 @@
+@@ -0,0 +1,66 @@
 +# `-fportcosmo`: patching `gcc` to build C software with Cosmopolitan Libc
 +
-+This 2kLOC `gcc` patch simplifies the compilation of C software with
++This `gcc` patch simplifies the compilation of C software with
 +[Cosmopolitan Libc][cosmo], specifically solving the issues related to system
-+constants (it avoids the `switch case is not constant` and `initializer element
-+is not constant` errors by rewriting the AST at the necessary locations). The
-+code is based on [my experimental GCC plugin][plugin], with simplifications and
-+extra features from being able to patch gcc itself. All my code in this patch is
-+under the [ISC License][isc].
++constants: it avoids the `switch case is not constant` and `initializer element
++is not constant` errors by rewriting the AST at the necessary locations. 
++
++The code is based on [my experimental GCC plugin][plugin], with simplifications
++and extra features from being able to patch gcc itself. All my code in this
++patch is under the [ISC License][isc].
 +
 +## How to use this feature?
 +
 +First, you would need to obtain a patched `gcc` built with this patch included:
 +
-+* You can build via the usual `./configure` from this repo, or
-+* You can build `gcc` 11.2.0 on Linux [from my fork of
-+  `musl-cross-make`][mcross], where this patch is available as a single diff, or
++* You can use the `gcc` binaries built with this patch on Github Actions:
++  https://github.com/ahgamut/superconfigure/releases
 +* You can use the `gcc` binaries [bundled in the Cosmopolitan Libc
 +  monorepo][gcc-3p] which have been built with a recent version of this patch,
 +  along with the [`cosmocc` wrapper script][cosmocc].
++* You can build via the usual `./configure` from this repo
++* You can build `gcc` 11.2.0 on Linux [from my fork of
++  `musl-cross-make`][mcross], where this patch is available as a single diff, or
 +
-+Once you have built `gcc` with this patch, just pass `-fportcosmo` as a compiler
++Once you have a `gcc` built with this patch, just pass `-fportcosmo` as a compiler
 +flag when building your C software. If you'd prefer specific temporary integer
 +values to be used during the AST patching process, you can `#define` them with
-+the `__tmpcosmo_` prefix, like `#define __tmpcosmo_SIGILL 15782233`.
++the `__tmpcosmo_` prefix, like `#define __tmpcosmo_SIGTERM 15782233`.
 +
 +## How does it work?
 +
 +`-fportcosmo` works by rewriting the AST. Think of it as a "context-sensitive
-+`defmacro` LISP-y error handler", that activates before `gcc` can trigger a
++LISP-y `defmacro` error handler", that activates before `gcc` can trigger a
 +`switch case is not constant` or `initializer element is not constant` error.
 +
 +* the error is triggered because `gcc` expects the case or initializer to be a
 +  compile-time constant, which it isn't
 +* this patch activates and avoids the "error" by providing a temporary `int32_t`
-+  constant to the AST, which you can provide via a `#define __tmpcosmo_SIGILL`
++  constant to the AST, which you can provide via a `#define __tmpcosmo_SIGTERM`
 +  in your code, or let the patch choose it automatically with values starting
 +  from 15840000
 +* after the complete AST has been constructed, this patch walks through the AST
@@ -53,9 +56,9 @@ index 000000000..f471c05fe
 +For an extended explanation, refer to the three READMEs [with my
 +plugin][plugin].  Note that this patch currently does not work with: 
 +
-+* `g++` (due to `constexpr` interference, but now most switch cases would work)
++* `g++` with `constexpr` initializations
 +* `enum`s (rewrite to `#define`s instead), or 
-+* wacky situtations where `SIGILL` is used as an array index within an
++* wacky situtations where `SIGTERM` is used as an array index within an
 +  initializer (hello pls `busybox` why). 
 +
 +Finally, remember this patch is just a convenience -- you could always rewrite
@@ -67,6 +70,33 @@ index 000000000..f471c05fe
 +[mcross]: https://github.com/ahgamut/musl-cross-make/tree/portcosmo
 +[gcc-3p]: https://github.com/jart/cosmopolitan/tree/48b2afb192ec18eca40c0b25603c02a2e3b578e9/third_party/gcc
 +[cosmocc]: https://github.com/jart/cosmopolitan/blob/48b2afb192ec18eca40c0b25603c02a2e3b578e9/tool/scripts/cosmocc
+diff --git a/config.sub b/config.sub
+index 63c1f1c8b..704918457 100755
+--- a/config.sub
++++ b/config.sub
+@@ -1684,7 +1684,7 @@ fi
+ # Now, validate our (potentially fixed-up) OS.
+ case $os in
+ 	# Sometimes we do "kernel-libc", so those need to count as OSes.
+-	musl* | newlib* | uclibc*)
++	cosmo* | musl* | newlib* | uclibc*)
+ 		;;
+ 	# Likewise for "kernel-abi"
+ 	eabi* | gnueabi*)
+@@ -1742,11 +1742,11 @@ esac
+ # As a final step for OS-related things, validate the OS-kernel combination
+ # (given a valid OS), if there is a kernel.
+ case $kernel-$os in
+-	linux-gnu* | linux-dietlibc* | linux-android* | linux-newlib* | linux-musl* | linux-uclibc* )
++	linux-gnu* | linux-dietlibc* | linux-android* | linux-newlib* | linux-cosmo* | linux-musl* | linux-uclibc* )
+ 		;;
+ 	uclinux-uclibc* )
+ 		;;
+-	-dietlibc* | -newlib* | -musl* | -uclibc* )
++	-dietlibc* | -newlib* | -cosmo* | -musl* | -uclibc* )
+ 		# These are just libc implementations, not actual OSes, and thus
+ 		# require a kernel.
+ 		echo "Invalid configuration \`$1': libc \`$os' needs explicit kernel." 1>&2
 diff --git a/configure b/configure
 index 504f64102..0b6f8bffc 100755
 --- a/configure
@@ -111,6 +141,18 @@ index 504f64102..0b6f8bffc 100755
  #include <mpc.h>
  int
  main ()
+diff --git a/fixincludes/mkfixinc.sh b/fixincludes/mkfixinc.sh
+index df90720b7..0b295a757 100755
+--- a/fixincludes/mkfixinc.sh
++++ b/fixincludes/mkfixinc.sh
+@@ -20,6 +20,7 @@ case $machine in
+     powerpcle-*-eabisim* | \
+     powerpcle-*-eabi* | \
+     *-*-vxworks7* | \
++    *-cosmo* | \
+     *-musl* )
+ 	#  IF there is no include fixing,
+ 	#  THEN create a no-op fixer and exit
 diff --git a/gcc/Makefile.in b/gcc/Makefile.in
 index 8a5fb3fd9..080dc032a 100644
 --- a/gcc/Makefile.in
@@ -1997,6 +2039,97 @@ index 000000000..2c6a58296
 +                             get_identifier(IDENTIFIER_NAME(ind)),
 +                             DECL_SOURCE_LOCATION(ind));
 +}
+diff --git a/gcc/config.gcc b/gcc/config.gcc
+index 357b0bed0..24e339542 100644
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -659,7 +659,7 @@ case ${target} in
+ esac
+ 
+ # Common C libraries.
+-tm_defines="$tm_defines LIBC_GLIBC=1 LIBC_UCLIBC=2 LIBC_BIONIC=3 LIBC_MUSL=4"
++tm_defines="$tm_defines LIBC_GLIBC=1 LIBC_UCLIBC=2 LIBC_BIONIC=3 LIBC_MUSL=4 LIBC_COSMO=5"
+ 
+ # 32-bit x86 processors supported by --with-arch=.  Each processor
+ # MUST be separated by exactly one space.
+@@ -860,6 +860,9 @@ case ${target} in
+     *-*-*musl*)
+       tm_defines="$tm_defines DEFAULT_LIBC=LIBC_MUSL"
+       ;;
++    *-*-*cosmo*)
++      tm_defines="$tm_defines DEFAULT_LIBC=LIBC_COSMO"
++      ;;
+     *)
+       tm_defines="$tm_defines DEFAULT_LIBC=LIBC_GLIBC"
+       ;;
+@@ -3044,6 +3047,10 @@ powerpc*-*-linux*)
+ 	    *-linux*-musl*)
+ 		enable_secureplt=yes ;;
+ 	esac
++	case ${target} in
++	    *-linux*-cosmo*)
++		enable_secureplt=yes ;;
++	esac
+ 	if test x${enable_secureplt} = xyes; then
+ 		tm_file="rs6000/secureplt.h ${tm_file}"
+ 	fi
+@@ -3614,6 +3621,9 @@ case ${target} in
+ *-linux-musl*)
+ 	tmake_file="${tmake_file} t-musl"
+ 	;;
++*-linux-cosmo*)
++	tmake_file="${tmake_file} t-cosmo"
++	;;
+ *-linux-uclibc*)
+ 	tmake_file="${tmake_file} t-uclibc"
+ 	;;
+@@ -3622,7 +3632,7 @@ esac
+ # Assume the existence of indirect function support and allow the use of the
+ # resolver attribute.
+ case ${target} in
+-*-*-linux*android*|*-*-linux*uclibc*|*-*-linux*musl*)
++*-*-linux*android*|*-*-linux*uclibc*|*-*-linux*cosmo*|*-*-linux*musl*)
+         ;;
+ *-*-kfreebsd*-gnu | *-*-kopensolaris*-gnu)
+         ;;
+diff --git a/gcc/config/linux.h b/gcc/config/linux.h
+index 4e1db60fc..30f24315b 100644
+--- a/gcc/config/linux.h
++++ b/gcc/config/linux.h
+@@ -29,13 +29,13 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+ 
+ /* C libraries supported on Linux.  */
+ #ifdef SINGLE_LIBC
+-#define OPTION_GLIBC  (DEFAULT_LIBC == LIBC_GLIBC)
++#define OPTION_GLIBC  (DEFAULT_LIBC == LIBC_GLIBC || DEFAULT_LIBC == LIBC_COSMO)
+ #define OPTION_UCLIBC (DEFAULT_LIBC == LIBC_UCLIBC)
+ #define OPTION_BIONIC (DEFAULT_LIBC == LIBC_BIONIC)
+ #undef OPTION_MUSL
+ #define OPTION_MUSL   (DEFAULT_LIBC == LIBC_MUSL)
+ #else
+-#define OPTION_GLIBC  (linux_libc == LIBC_GLIBC)
++#define OPTION_GLIBC  (linux_libc == LIBC_GLIBC || DEFAULT_LIBC == LIBC_COSMO)
+ #define OPTION_UCLIBC (linux_libc == LIBC_UCLIBC)
+ #define OPTION_BIONIC (linux_libc == LIBC_BIONIC)
+ #undef OPTION_MUSL
+@@ -84,6 +84,9 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+ #define CHOOSE_DYNAMIC_LINKER(G, U, B, M) \
+   CHOOSE_DYNAMIC_LINKER1 ("mbionic", "mglibc", "muclibc", "mmusl", B, G, U, M)
+ #elif DEFAULT_LIBC == LIBC_MUSL
++#define CHOOSE_DYNAMIC_LINKER(G, U, B, M) \
++  CHOOSE_DYNAMIC_LINKER1 ("mmusl", "mglibc", "muclibc", "mbionic", M, G, U, B)
++#elif DEFAULT_LIBC == LIBC_COSMO
+ #define CHOOSE_DYNAMIC_LINKER(G, U, B, M) \
+   CHOOSE_DYNAMIC_LINKER1 ("mmusl", "mglibc", "muclibc", "mbionic", M, G, U, B)
+ #else
+diff --git a/gcc/config/t-cosmo b/gcc/config/t-cosmo
+new file mode 100644
+index 000000000..618d6b281
+--- /dev/null
++++ b/gcc/config/t-cosmo
+@@ -0,0 +1,2 @@
++MULTIARCH_DIRNAME := $(subst -linux-gnu,-linux-cosmo,$(MULTIARCH_DIRNAME))
++MULTILIB_OSDIRNAMES := $(subst -linux-gnu,-linux-cosmo,$(MULTILIB_OSDIRNAMES))
 diff --git a/gcc/cp/Make-lang.in b/gcc/cp/Make-lang.in
 index 155be74ef..2fe9484ff 100644
 --- a/gcc/cp/Make-lang.in
