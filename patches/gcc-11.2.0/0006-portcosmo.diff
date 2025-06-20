@@ -1,6 +1,6 @@
 diff --git a/README.md b/README.md
 new file mode 100644
-index 000000000..b750ac9c1
+index 00000000000..b750ac9c133
 --- /dev/null
 +++ b/README.md
 @@ -0,0 +1,66 @@
@@ -71,7 +71,7 @@ index 000000000..b750ac9c1
 +[gcc-3p]: https://github.com/jart/cosmopolitan/tree/48b2afb192ec18eca40c0b25603c02a2e3b578e9/third_party/gcc
 +[cosmocc]: https://github.com/jart/cosmopolitan/blob/48b2afb192ec18eca40c0b25603c02a2e3b578e9/tool/scripts/cosmocc
 diff --git a/config.sub b/config.sub
-index 63c1f1c8b..704918457 100755
+index 63c1f1c8b5e..7049184577f 100755
 --- a/config.sub
 +++ b/config.sub
 @@ -1684,7 +1684,7 @@ fi
@@ -98,7 +98,7 @@ index 63c1f1c8b..704918457 100755
  		# require a kernel.
  		echo "Invalid configuration \`$1': libc \`$os' needs explicit kernel." 1>&2
 diff --git a/configure b/configure
-index 504f64102..0b6f8bffc 100755
+index 504f6410274..0b6f8bffc1d 100755
 --- a/configure
 +++ b/configure
 @@ -7775,6 +7775,7 @@ $as_echo_n "checking for the correct version of mpfr.h... " >&6; }
@@ -142,7 +142,7 @@ index 504f64102..0b6f8bffc 100755
  int
  main ()
 diff --git a/fixincludes/mkfixinc.sh b/fixincludes/mkfixinc.sh
-index df90720b7..0b295a757 100755
+index df90720b716..0b295a75713 100755
 --- a/fixincludes/mkfixinc.sh
 +++ b/fixincludes/mkfixinc.sh
 @@ -20,6 +20,7 @@ case $machine in
@@ -154,7 +154,7 @@ index df90720b7..0b295a757 100755
  	#  IF there is no include fixing,
  	#  THEN create a no-op fixer and exit
 diff --git a/gcc/Makefile.in b/gcc/Makefile.in
-index 8a5fb3fd9..080dc032a 100644
+index 8a5fb3fd99c..080dc032a5f 100644
 --- a/gcc/Makefile.in
 +++ b/gcc/Makefile.in
 @@ -1231,6 +1231,10 @@ GCC_OBJS = gcc.o gcc-main.o ggc-none.o
@@ -188,7 +188,7 @@ index 8a5fb3fd9..080dc032a 100644
  s-target-hooks-def-h: build/genhooks$(build_exeext)
  	$(RUN_GEN) build/genhooks$(build_exeext) "Target Hook" \
 diff --git a/gcc/c-family/c-common.c b/gcc/c-family/c-common.c
-index d227686a0..895211ba4 100644
+index d227686a030..895211ba493 100644
 --- a/gcc/c-family/c-common.c
 +++ b/gcc/c-family/c-common.c
 @@ -51,6 +51,7 @@ along with GCC; see the file COPYING3.  If not see
@@ -219,7 +219,7 @@ index d227686a0..895211ba4 100644
  
    constant_expression_warning (value);
 diff --git a/gcc/c-family/c-opts.c b/gcc/c-family/c-opts.c
-index 89e05a4c5..15c26f507 100644
+index 89e05a4c551..15c26f5074e 100644
 --- a/gcc/c-family/c-opts.c
 +++ b/gcc/c-family/c-opts.c
 @@ -41,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
@@ -261,7 +261,7 @@ index 89e05a4c5..15c26f507 100644
  
  /* Either of two environment variables can specify output of
 diff --git a/gcc/c-family/c.opt b/gcc/c-family/c.opt
-index 2005b783c..2d2127e0b 100644
+index 2005b783c68..2d2127e0bb0 100644
 --- a/gcc/c-family/c.opt
 +++ b/gcc/c-family/c.opt
 @@ -612,7 +612,7 @@ C ObjC C++ ObjC++ Var(warn_float_equal) Warning
@@ -295,10 +295,10 @@ index 2005b783c..2d2127e0b 100644
  Recognize C++ keywords like \"compl\" and \"xor\".
 diff --git a/gcc/c-family/ifswitch.cc b/gcc/c-family/ifswitch.cc
 new file mode 100644
-index 000000000..29f1de117
+index 00000000000..929cc765e04
 --- /dev/null
 +++ b/gcc/c-family/ifswitch.cc
-@@ -0,0 +1,271 @@
+@@ -0,0 +1,277 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -484,6 +484,12 @@ index 000000000..29f1de117
 +      case BIND_EXPR:
 +      case STATEMENT_LIST:
 +      case COND_EXPR:
++      case IF_STMT:
++      case CLEANUP_STMT:
++      case CLEANUP_POINT_EXPR:
++      case EXPR_STMT:
++      case TRY_BLOCK:
++      case HANDLER:
 +        /* we want to check the subtrees, because 
 +         * they may contain break statements */
 +        break;
@@ -572,7 +578,7 @@ index 000000000..29f1de117
 +}
 diff --git a/gcc/c-family/ifswitch.h b/gcc/c-family/ifswitch.h
 new file mode 100644
-index 000000000..ccf78067f
+index 00000000000..ccf78067ffe
 --- /dev/null
 +++ b/gcc/c-family/ifswitch.h
 @@ -0,0 +1,10 @@
@@ -588,10 +594,10 @@ index 000000000..ccf78067f
 +#endif /* IFSWITCH_H */
 diff --git a/gcc/c-family/initstruct.cc b/gcc/c-family/initstruct.cc
 new file mode 100644
-index 000000000..52ed28499
+index 00000000000..046382f0fab
 --- /dev/null
 +++ b/gcc/c-family/initstruct.cc
-@@ -0,0 +1,388 @@
+@@ -0,0 +1,390 @@
 +/*- mode:c++;indent-tabs-mode:nil;c-basic-offset:2;tab-width:8;coding:utf-8 -*-│
 +│vi: set net ft=c++ ts=2 sts=2 sw=2 fenc=utf-8                              :vi│
 +╞══════════════════════════════════════════════════════════════════════════════╡
@@ -668,6 +674,7 @@ index 000000000..52ed28499
 +
 +void update_global_decls(tree dcl, SubContext *ctx) {
 +  tree body = alloc_stmt_list();
++  tree replacement = NULL_TREE;
 +  subu_node *use = NULL;
 +  char chk[STRING_BUFFER_SIZE];
 +
@@ -680,11 +687,11 @@ index 000000000..52ed28499
 +   *
 +   * static int foo = __tmpcosmo_VAR;
 +   * __attribute__((constructor)) __hidden_ctor1() {
-+   *   foo = VAR;
++   *   foo = VAR_OR_EXPR;
 +   * }
 +   * static struct toy myvalue = {.x=1, .y=__tmpcosmo_VAR};
 +   * __attribute__((constructor)) __hidden_ctor2() {
-+   *    myvalue.y = VAR;
++   *    myvalue.y = VAR_OR_EXPR;
 +   * }
 +   *
 +   * the modifier functions have the constructor attribute,
@@ -699,7 +706,8 @@ index 000000000..52ed28499
 +  if (INTEGRAL_TYPE_P(TREE_TYPE(dcl)) &&
 +      get_subu_elem(ctx->mods, ctx->mods->start, &use) &&
 +      /* use is non-NULL if get_subu_elem succeeds */
-+      check_magic_equal(DECL_INITIAL(dcl), use->name)) {
++      check_magic_equal(DECL_INITIAL(dcl), use->name) && 
++      arg_should_be_unpatched(DECL_INITIAL(dcl), use, &replacement)) {
 +    if (TREE_READONLY(dcl)) {
 +      error_at(EXPR_LOCATION(dcl), "cannot substitute this constant\n");
 +      /* actually I can, but the issue is if one of gcc's optimizations
@@ -709,7 +717,7 @@ index 000000000..52ed28499
 +      return;
 +    }
 +    append_to_statement_list(
-+        build2(MODIFY_EXPR, void_type_node, dcl, VAR_NAME_AS_TREE(use->name)),
++        build2(MODIFY_EXPR, void_type_node, dcl, replacement),
 +        &body);
 +    remove_subu_elem(ctx->mods, use);
 +    cgraph_build_static_cdtor('I', body, 0);
@@ -982,7 +990,7 @@ index 000000000..52ed28499
 +}
 diff --git a/gcc/c-family/initstruct.h b/gcc/c-family/initstruct.h
 new file mode 100644
-index 000000000..f77fba707
+index 00000000000..f77fba7073a
 --- /dev/null
 +++ b/gcc/c-family/initstruct.h
 @@ -0,0 +1,15 @@
@@ -1003,7 +1011,7 @@ index 000000000..f77fba707
 +#endif /* INITSTRUCT_H */
 diff --git a/gcc/c-family/portcosmo.cc b/gcc/c-family/portcosmo.cc
 new file mode 100644
-index 000000000..d8198af96
+index 00000000000..c5c477a8e56
 --- /dev/null
 +++ b/gcc/c-family/portcosmo.cc
 @@ -0,0 +1,256 @@
@@ -1211,7 +1219,7 @@ index 000000000..d8198af96
 +            return NULL_TREE;
 +        }
 +    } else {
-+        DEBUGF("returning existing entry for unknown expression\n", s);
++        DEBUGF("returning existing entry for unknown expression\n");
 +        return build_int_cst(long_long_integer_type_node, z->raw);
 +    }
 +}
@@ -1265,7 +1273,7 @@ index 000000000..d8198af96
 +}
 diff --git a/gcc/c-family/portcosmo.h b/gcc/c-family/portcosmo.h
 new file mode 100644
-index 000000000..ff06cb2b1
+index 00000000000..ff06cb2b146
 --- /dev/null
 +++ b/gcc/c-family/portcosmo.h
 @@ -0,0 +1,12 @@
@@ -1283,7 +1291,7 @@ index 000000000..ff06cb2b1
 +#endif /* PORTCOSMO_H */
 diff --git a/gcc/c-family/portcosmo.internal.h b/gcc/c-family/portcosmo.internal.h
 new file mode 100644
-index 000000000..ad5eaa7c6
+index 00000000000..ad5eaa7c6ea
 --- /dev/null
 +++ b/gcc/c-family/portcosmo.internal.h
 @@ -0,0 +1,56 @@
@@ -1345,7 +1353,7 @@ index 000000000..ad5eaa7c6
 +#endif /* PORTCOSMO.INTERNAL_H */
 diff --git a/gcc/c-family/subcontext.cc b/gcc/c-family/subcontext.cc
 new file mode 100644
-index 000000000..e97689bc7
+index 00000000000..e97689bc73f
 --- /dev/null
 +++ b/gcc/c-family/subcontext.cc
 @@ -0,0 +1,243 @@
@@ -1594,7 +1602,7 @@ index 000000000..e97689bc7
 +}
 diff --git a/gcc/c-family/subcontext.h b/gcc/c-family/subcontext.h
 new file mode 100644
-index 000000000..280ef0b71
+index 00000000000..280ef0b71c8
 --- /dev/null
 +++ b/gcc/c-family/subcontext.h
 @@ -0,0 +1,74 @@
@@ -1674,7 +1682,7 @@ index 000000000..280ef0b71
 +#endif /* SUBCONTEXT_H */
 diff --git a/gcc/c-family/unpatch_ast.cc b/gcc/c-family/unpatch_ast.cc
 new file mode 100644
-index 000000000..7b3254c80
+index 00000000000..7b3254c8092
 --- /dev/null
 +++ b/gcc/c-family/unpatch_ast.cc
 @@ -0,0 +1,115 @@
@@ -1795,7 +1803,7 @@ index 000000000..7b3254c80
 +}
 diff --git a/gcc/c-family/unpatch_int.cc b/gcc/c-family/unpatch_int.cc
 new file mode 100644
-index 000000000..fcaf457ef
+index 00000000000..fcaf457efdb
 --- /dev/null
 +++ b/gcc/c-family/unpatch_int.cc
 @@ -0,0 +1,69 @@
@@ -1869,7 +1877,7 @@ index 000000000..fcaf457ef
 +  return 0;
 +}
 diff --git a/gcc/c/Make-lang.in b/gcc/c/Make-lang.in
-index a1cdee872..ce57e8a27 100644
+index a1cdee87264..ce57e8a27b8 100644
 --- a/gcc/c/Make-lang.in
 +++ b/gcc/c/Make-lang.in
 @@ -55,8 +55,10 @@ C_AND_OBJC_OBJS = attribs.o c/c-errors.o c/c-decl.o c/c-typeck.o \
@@ -1885,7 +1893,7 @@ index a1cdee872..ce57e8a27 100644
  
  # Use strict warnings for this front end.
 diff --git a/gcc/c/c-decl.c b/gcc/c/c-decl.c
-index 53b2b5b63..51f3a72e5 100644
+index 53b2b5b637d..51f3a72e551 100644
 --- a/gcc/c/c-decl.c
 +++ b/gcc/c/c-decl.c
 @@ -58,6 +58,7 @@ along with GCC; see the file COPYING3.  If not see
@@ -1918,7 +1926,7 @@ index 53b2b5b63..51f3a72e5 100644
  	  c_genericize (fndecl);
  
 diff --git a/gcc/c/c-typeck.c b/gcc/c/c-typeck.c
-index b5d139e5d..95be84d2d 100644
+index b5d139e5d9b..95be84d2d4b 100644
 --- a/gcc/c/c-typeck.c
 +++ b/gcc/c/c-typeck.c
 @@ -46,6 +46,7 @@ along with GCC; see the file COPYING3.  If not see
@@ -2005,7 +2013,7 @@ index b5d139e5d..95be84d2d 100644
        else if (require_constant_elements)
 diff --git a/gcc/c/portcosmo_bcref.cc b/gcc/c/portcosmo_bcref.cc
 new file mode 100644
-index 000000000..2c6a58296
+index 00000000000..a30498bbc71
 --- /dev/null
 +++ b/gcc/c/portcosmo_bcref.cc
 @@ -0,0 +1,30 @@
@@ -2036,11 +2044,11 @@ index 000000000..2c6a58296
 +    return build_array_ref(input_location, obj, ind);
 +  }
 +  return build_component_ref(input_location, obj,
-+                             get_identifier(IDENTIFIER_NAME(ind)),
++                             DECL_NAME(ind),
 +                             DECL_SOURCE_LOCATION(ind));
 +}
 diff --git a/gcc/config.gcc b/gcc/config.gcc
-index 357b0bed0..24e339542 100644
+index 357b0bed067..24e339542bc 100644
 --- a/gcc/config.gcc
 +++ b/gcc/config.gcc
 @@ -659,7 +659,7 @@ case ${target} in
@@ -2093,7 +2101,7 @@ index 357b0bed0..24e339542 100644
  *-*-kfreebsd*-gnu | *-*-kopensolaris*-gnu)
          ;;
 diff --git a/gcc/config/linux.h b/gcc/config/linux.h
-index 4e1db60fc..30f24315b 100644
+index 4e1db60fced..30f24315bb2 100644
 --- a/gcc/config/linux.h
 +++ b/gcc/config/linux.h
 @@ -29,13 +29,13 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
@@ -2124,14 +2132,14 @@ index 4e1db60fc..30f24315b 100644
  #else
 diff --git a/gcc/config/t-cosmo b/gcc/config/t-cosmo
 new file mode 100644
-index 000000000..618d6b281
+index 00000000000..618d6b281c7
 --- /dev/null
 +++ b/gcc/config/t-cosmo
 @@ -0,0 +1,2 @@
 +MULTIARCH_DIRNAME := $(subst -linux-gnu,-linux-cosmo,$(MULTIARCH_DIRNAME))
 +MULTILIB_OSDIRNAMES := $(subst -linux-gnu,-linux-cosmo,$(MULTILIB_OSDIRNAMES))
 diff --git a/gcc/cp/Make-lang.in b/gcc/cp/Make-lang.in
-index 155be74ef..2fe9484ff 100644
+index 155be74efdb..2fe9484ff96 100644
 --- a/gcc/cp/Make-lang.in
 +++ b/gcc/cp/Make-lang.in
 @@ -84,6 +84,10 @@ g++-cross$(exeext): xg++$(exeext)
@@ -2155,7 +2163,7 @@ index 155be74ef..2fe9484ff 100644
  ifeq ($(if $(wildcard ../stage_current),$(shell cat \
    ../stage_current)),stageautofeedback)
 diff --git a/gcc/cp/constexpr.c b/gcc/cp/constexpr.c
-index 147f6307e..043aa6ada 100644
+index 147f6307eb4..043aa6ada4a 100644
 --- a/gcc/cp/constexpr.c
 +++ b/gcc/cp/constexpr.c
 @@ -36,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
@@ -2188,7 +2196,7 @@ index 147f6307e..043aa6ada 100644
  	}
        break;
 diff --git a/gcc/cp/decl.c b/gcc/cp/decl.c
-index 5e101ffb8..1f68dddbf 100644
+index 5e101ffb843..1f68dddbfd2 100644
 --- a/gcc/cp/decl.c
 +++ b/gcc/cp/decl.c
 @@ -56,6 +56,7 @@ along with GCC; see the file COPYING3.  If not see
@@ -2226,7 +2234,7 @@ index 5e101ffb8..1f68dddbf 100644
    if (!processing_template_decl
 diff --git a/gcc/cp/portcosmo_bcref_cp.cc b/gcc/cp/portcosmo_bcref_cp.cc
 new file mode 100644
-index 000000000..bf01d9aeb
+index 00000000000..bf01d9aebfe
 --- /dev/null
 +++ b/gcc/cp/portcosmo_bcref_cp.cc
 @@ -0,0 +1,42 @@
@@ -2273,7 +2281,7 @@ index 000000000..bf01d9aeb
 +  */
 +}
 diff --git a/libcpp/lex.c b/libcpp/lex.c
-index 3791f3882..693d108b8 100644
+index 3791f388207..693d108b86b 100644
 --- a/libcpp/lex.c
 +++ b/libcpp/lex.c
 @@ -23,6 +23,7 @@ along with this program; see the file COPYING3.  If not see
